@@ -113,7 +113,6 @@
     <Compile Include="Rayleigh.cs" />
     <Compile Include="Select.cs" />
     <Compile Include="SelectMany.cs" />
-    <Compile Include="TraceEntry.cs" />
     <Compile Include="Uncertain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RandomMath.cs" />
