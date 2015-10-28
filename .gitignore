@@ -3,3 +3,4 @@
 *.intermediate
 *.resfiles
 UncertainT/obj/
+UncertainTests/obj
