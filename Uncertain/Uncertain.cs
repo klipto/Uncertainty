@@ -46,7 +46,7 @@ namespace Microsoft.Research.Uncertain
         protected Uncertain() {}
 
         protected abstract IEnumerable<Weighted<T>> GetSupport();
-        internal IEnumerable<Weighted<T>> Support()
+        public IEnumerable<Weighted<T>> Support()
         {
             return this.GetSupport();
         }
