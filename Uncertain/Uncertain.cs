@@ -43,7 +43,7 @@ namespace Microsoft.Research.Uncertain
 
     public abstract class Uncertain<T>
     {
-        protected Uncertain() { }
+        protected Uncertain() {}
 
         protected abstract IEnumerable<Weighted<T>> GetSupport();
         internal IEnumerable<Weighted<T>> Support()

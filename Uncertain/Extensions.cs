@@ -242,7 +242,7 @@ namespace Microsoft.Research.Uncertain.Inference
     public static class Extensions
     {
 
-        private static Uncertain<T> RunInference<T>(IList<Weighted<T>> data, IEqualityComparer<T> comparer = null)
+        internal static Uncertain<T> RunInference<T>(IList<Weighted<T>> data, IEqualityComparer<T> comparer = null)
         {
             if (comparer == null)
                 comparer = EqualityComparer<T>.Default;

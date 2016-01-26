@@ -79,8 +79,9 @@ namespace Microsoft.Research.Uncertain
                 return true;
 
             if (other is RandomPrimitive<T>)
+            {
                 return this.StructuralEquals(other as RandomPrimitive<T>);
-
+            }
             return false;
         }
 
