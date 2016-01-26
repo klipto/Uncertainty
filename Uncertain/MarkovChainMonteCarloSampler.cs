@@ -73,6 +73,8 @@ namespace Microsoft.Research.Uncertain
             this.source = source;
             this.generation = 1;
             this.stack = Tuple.Create(0, 0, 0);
+            this.trace = new List<TraceEntry>();
+            this.oldTrace = new List<TraceEntry>();
         }
 
         private static void Swap<T>(ref T lhs, ref T rhs)
@@ -118,50 +120,53 @@ namespace Microsoft.Research.Uncertain
             return Math.Min(0, traceScore - oldScore + bw - fw);
         }
 
-        public IEnumerable<Weighted<T1>> GetEnumerator<T1>(Uncertain<T1> source)
+        private IEnumerable<Weighted<T1>> GetEnumerator<T1>(Uncertain<T1> uncertain)
         {
-            this.trace = new List<TraceEntry>();
-            this.oldTrace = new List<TraceEntry>();
             var regenFrom = 0;
             var r = new Random();
+            var initstack = this.stack;
 
             // run once to get a trace
-            this.source.Accept(this);
+            uncertain.Accept(this);
+            
             // put into oldTrace
-            Swap(ref trace, ref oldTrace);
-
+            if (oldTrace.Count == 0)
+                Swap(ref trace, ref oldTrace);
+            
             while (true)
             {
-                // reset stack
-                this.stack = Tuple.Create(0, 0, 0);
+                this.generation++;
 
-                var pathscore = this.trace.Select(e => e.Score).Sum();
-                if (Double.IsInfinity(pathscore))
-                {
-                    continue;
-                }
+                // reset stack
+                this.stack = initstack;
 
                 var roll = r.NextDouble();
                 var acceptance = Accept(trace, oldTrace, regenFrom);
-                if (this.generation == 1 || !(Math.Log(roll) < acceptance))
+                if (this.generation == 2 /* init */ || !(Math.Log(roll) < acceptance))
                 {
-                    // rollback or init
-                    trace.AddRange(oldTrace);
+                    // rollback proposal
+                    trace.Clear();
+                    //trace.AddRange(oldTrace);
+                    foreach(var item in oldTrace)
+                    {
+                        var e = item;
+                        e.Reused = false;
+                        ((RandomPrimitive)e.Erp).ForceRegen = false;
+                        trace.Add(e);
+                    }
                 }
 
                 // yield sample
                 yield return (Weighted<T1>)this.sample;
 
                 Swap(ref trace, ref oldTrace);
-                regenFrom = (int)Math.Floor(r.NextDouble() * trace.Count);
-                var erp = trace[regenFrom].Erp;
+                regenFrom = (int)Math.Floor(r.NextDouble() * oldTrace.Count);
+                var erp = oldTrace[regenFrom].Erp;
                 trace.Clear();
 
                 ((RandomPrimitive)erp).ForceRegen = true;
-                this.source.Accept(this);
-                ((RandomPrimitive)erp).ForceRegen = false;
-
-                this.generation++;
+                uncertain.Accept(this);
+                ((RandomPrimitive)erp).ForceRegen = false;                
             }
         }
 
@@ -172,7 +177,8 @@ namespace Microsoft.Research.Uncertain
 
         public void Visit<T1>(Where<T1> where)
         {
-            foreach(var sample in this.GetEnumerator<T1>(where.source))
+            this.stack = Tuple.Create(stack.Item1, stack.Item2, stack.Item3 + 1);
+            foreach (var sample in this.GetEnumerator<T1>(where.source))
             {
                 if (where.Predicate(sample.Value))
                 {
@@ -185,13 +191,22 @@ namespace Microsoft.Research.Uncertain
         public void Visit<T1>(RandomPrimitive<T1> erp)
         {
             var prev = FindChoice(this.oldTrace, this.stack, erp);
-            var reuse = !(prev.HasValue == false | ((RandomPrimitive)erp).ForceRegen);
-            var sample = reuse ? (T1) prev.Value.Sample : erp.Sample(this.generation);
-            this.sample = new Weighted<T1>(sample);
-            var score = Math.Log(erp.Score(sample));
-            var entry = new TraceEntry(this.stack, erp, sample, score);
-            entry.Reused = reuse;
-            this.trace.Add(entry);
+            var reuse = prev.HasValue && ((RandomPrimitive)prev.Value.Erp).ForceRegen == false;
+            if (reuse)
+            {
+                var entry = prev.Value;
+                this.sample = new Weighted<T1>((T1)entry.Sample);
+                entry.Reused = true;
+                this.trace.Add(entry);
+            }
+            else
+            {
+                var sample = erp.Sample(this.generation);
+                var score = Math.Log(erp.Score(sample));
+                this.sample = new Weighted<T1>(sample);
+                var entry = new TraceEntry(this.stack, erp, sample, score, false);
+                this.trace.Add(entry);
+            }
         }
 
         public void Visit<TSource, TResult>(Select<TSource, TResult> select)
