@@ -103,10 +103,21 @@ namespace Microsoft.Research.Willis
 
         public IEnumerable<Tuple<int, int, int>> Run(IList<Compiler.Bytecode> codes, string input)
         {
-            var labelMap = codes.
-                Select((code, idx) => new { code, idx }).
-                Where(code => code.code is Compiler.Label).
-                ToDictionary(k => ((Compiler.Label)k.code).Location, e => e.idx);
+            var labelMap = new Dictionary<int, int>();
+            for(int idx = 0; idx < codes.Count; idx++)
+            {
+                var code = codes[idx];
+                if (code is Compiler.Label)
+                {
+                    var loc = ((Compiler.Label)code).Location;
+                    labelMap[loc] = idx;
+                }
+            }
+            
+            //var labelMap = codes.
+            //    Select((code, idx) => new { code, idx }).
+            //    Where(code => code.code is Compiler.Label).
+            //    ToDictionary(k => ((Compiler.Label)k.code).Location, e => e.idx);
 
             var count = 1 + codes.Where(k => k is Compiler.Save).Select(k => ((Compiler.Save)k).Id).Max();
             Contract.Assert(count % 2 == 0);

@@ -248,7 +248,7 @@ namespace Microsoft.Research.Willis
                          select editedinput;
             
             var recurse = from edit in output
-                          from b in new Flip(0.01)
+                          from b in new Flip(0.1)
                           let next = b ? PossibleInterpretations2(edit) : edit
                           from recursivelyedited in next
                           select recursivelyedited;
@@ -319,11 +319,12 @@ namespace Microsoft.Research.Willis
         static void Main(string[] args)
         {
             var program = "(a.*)(a.*)(c)";
-
+            
             var example = "aaAaac";
             var re = new Parser("(a.*)(A.*)(c)").Parse();
             var codes = new Compiler().Compile(re).ToList();
             var matches = new Interpreter().Run(codes, example);
+            var example1 = Tuple.Create(example, matches);
             var examples = new[] { Tuple.Create(example, matches) };
 
             //foreach (var item in RegexpSpeaker(program, true).Support().OrderByDescending(k => k.Probability).Take(5))
@@ -341,10 +342,23 @@ namespace Microsoft.Research.Willis
 
             //Console.WriteLine();
 
-            foreach (var item in CompilerListenerWithExample(program, examples).Support().OrderByDescending(k => k.Probability)) //;/.Take(5))
-                Console.WriteLine(item);
+            //foreach (var item in CompilerListenerWithExample(program, examples).Support().OrderByDescending(k => k.Probability)) //;/.Take(5))
+            //    Console.WriteLine(item);
 
-            Console.WriteLine();
+                //var tmp = new Multinomial<Tuple<string, IEnumerable<Tuple<int, int, int>>>>(examples);
+            var p = from stmt in PossibleInterpretations2("(a)")
+                    let re1 = new Parser(stmt).Parse()
+                    let codes1 = new Compiler().Compile(re1)
+                    let matches1 = new Interpreter().Run(codes1.ToList(), example1.Item1)
+                    where Cmp(matches1, example1.Item2)
+                    select stmt;
+
+            var sampler = new MarkovChainMonteCarloSampler<string>(p);            
+            var output = sampler.Take(1).ToList();
+
+            //var output = PossibleInterpretations2(program).SampledInference(100000).Support().OrderByDescending(k => k.Probability).Take(5).ToList();
+
+            //Console.WriteLine();
             //var output = PossibleInterpretations2(program).SampledInference(100000).Support().OrderByDescending(k => k.Probability).Take(5);
             //foreach (var item in output)
             //    Console.WriteLine(item);

@@ -97,23 +97,44 @@ namespace Microsoft.Research.Uncertain
             return null;
         }
 
-        private static double Accept(IEnumerable<TraceEntry> trace, IEnumerable<TraceEntry> oldTrace, int regenFrom)
+        private static double Accept(IList<TraceEntry> trace, IList<TraceEntry> oldTrace, int regenFrom)
         {
-            var traceScore = trace.Select(e => e.Score).Sum();
-            var oldScore = oldTrace.Select(e => e.Score).Sum();
+            double traceScore = 0, oldScore = 0, fw = -Math.Log(oldTrace.Count), bw = -Math.Log(trace.Count);
 
-            var fw = -Math.Log(oldTrace.Count());
-            fw += trace.Skip(regenFrom).Where(e => e.Reused == false).Select(e => e.Score).Sum();
-
-            var bw = -Math.Log(trace.Count());
-            foreach(var e in oldTrace)
+            for(int i = 0; i < Math.Max(trace.Count, oldTrace.Count); i++)
             {
-                var nc = FindChoice(trace, e.Location, e.Erp);
-                if (nc.HasValue && !nc.Value.Reused)
+                if (i < trace.Count)
                 {
-                    bw += e.Score;
+                    traceScore += trace[i].Score;
+                    fw += i >= regenFrom && trace[i].Reused == false ? trace[i].Score : 0;
+                }
+                
+                if (i < oldTrace.Count)
+                {
+                    oldScore += oldTrace[i].Score;
+                    var nc = FindChoice(trace, oldTrace[i].Location, oldTrace[i].Erp);
+                    if (nc.HasValue && !nc.Value.Reused)
+                    {
+                        bw += oldTrace[i].Score;
+                    }
                 }
             }
+
+            //var traceScore = trace.Select(e => e.Score).Sum();
+            //var oldScore = oldTrace.Select(e => e.Score).Sum();
+
+            //var fw = -Math.Log(oldTrace.Count());
+            //fw += trace.Skip(regenFrom).Where(e => e.Reused == false).Select(e => e.Score).Sum();
+
+            //var bw = -Math.Log(trace.Count());
+            //foreach(var e in oldTrace)
+            //{
+            //    var nc = FindChoice(trace, e.Location, e.Erp);
+            //    if (nc.HasValue && !nc.Value.Reused)
+            //    {
+            //        bw += e.Score;
+            //   }
+            //}
 
             return Math.Min(0, traceScore - oldScore + bw - fw);
         }
@@ -132,23 +153,36 @@ namespace Microsoft.Research.Uncertain
                 if (sampled != null)
                     sampled.ForceRegen = true;
                 uncertain.Accept(this);
-                if (sampled != null)
-                    sampled.ForceRegen = false;
+                //if (sampled != null)
+                //    sampled.ForceRegen = false;
 
-                yield return (Weighted<T1>)this.sample;
-                
+                // TODO: should we return 0 mass samples?
+                //       0 IS a reasonable weight if all 
+                //       one wants to do is know about a
+                //       posterior
+                var returnval = (Weighted<T1>)this.sample;
+
+                //if (returnval.Probability > 0)
+                //    yield return returnval;
+                yield return returnval;
+
                 var roll = Extensions.NextRandom();
                 var acceptance = Accept(trace, oldTrace, regenFrom);
                 if (this.generation > 1 && !(Math.Log(roll) < acceptance))
                 {
                     // rollback proposal
                     trace.Clear();
-                    trace.AddRange(oldTrace);
+                    trace.AddRange(oldTrace);                    
                 }
 
                 Swap(ref trace, ref oldTrace);
-                regenFrom = (int)Math.Floor(Extensions.NextRandom() * oldTrace.Count);
-                sampled = oldTrace[regenFrom].Erp;
+                if (oldTrace.Count > 0)
+                {
+                    var tmp = oldTrace.Select(e => e.Erp).Distinct().ToList();
+                    regenFrom = (int)Math.Floor(Extensions.NextRandom() * tmp.Count);
+                    sampled = tmp[regenFrom];
+                    //sampled = oldTrace[regenFrom].Erp;
+                }
                 trace.Clear();
 
                 this.generation++;
@@ -165,10 +199,12 @@ namespace Microsoft.Research.Uncertain
             this.stack = Tuple.Create(stack.Item1, stack.Item2, stack.Item3 + 1);
             //var sampler = new MarkovChainMonteCarloSampler<T1>(where.source);
             //foreach (var sample in sampler)
+            
             foreach (var sample in this.GetEnumerator<T1>(where.source))
             {
+                var tmp = sample.Value;
                 if (where.Predicate(sample.Value))
-                {
+                {                    
                     this.sample = sample;
                     return;
                 }
@@ -201,6 +237,10 @@ namespace Microsoft.Research.Uncertain
                 this.sample = new Weighted<T1>(sample);
                 var entry = new TraceEntry(this.stack, erp, sample, score, false);
                 this.trace.Add(entry);
+                // keep from forcing a regeneration of this RandomPrimitive
+                // either on this iteration (i.e., because of a programmer
+                // induced dependence) or in future iterations.
+                ((RandomPrimitive)erp).ForceRegen = false;
             }
         }
 

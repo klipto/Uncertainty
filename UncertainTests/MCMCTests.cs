@@ -33,9 +33,8 @@ namespace UncertainTests
             var program = from a in new Flip(0.9)
                           from b in new Flip(0.9)
                           from c in new Flip(0.9)
-                          where b
                           let d = Convert.ToInt32(a) + Convert.ToInt32(b) + Convert.ToInt32(c)
-                          select new Weighted<int>(d, a ? 0.1 : 1);
+                          select new Weighted<int>(d, a ? 0.0 : 1);
 
             var sampler = new MarkovChainMonteCarloSampler<int>(program);
 
