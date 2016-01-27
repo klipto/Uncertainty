@@ -100,7 +100,7 @@ namespace Microsoft.Research.Uncertain
         private static double Accept(IList<TraceEntry> trace, IList<TraceEntry> oldTrace, int regenFrom)
         {
             double traceScore = 0, oldScore = 0, fw = -Math.Log(oldTrace.Count), bw = -Math.Log(trace.Count);
-
+            
             for(int i = 0; i < Math.Max(trace.Count, oldTrace.Count); i++)
             {
                 if (i < trace.Count)
@@ -119,9 +119,9 @@ namespace Microsoft.Research.Uncertain
                     }
                 }
             }
-
-            //var traceScore = trace.Select(e => e.Score).Sum();
-            //var oldScore = oldTrace.Select(e => e.Score).Sum();
+            /// Used to easily explain above code
+            //var traceScore = trace.Select(e => e.Score).Sum();   // note could read from this.sample
+            //var oldScore = oldTrace.Select(e => e.Score).Sum();  // note could read from this.oldSample
 
             //var fw = -Math.Log(oldTrace.Count());
             //fw += trace.Skip(regenFrom).Where(e => e.Reused == false).Select(e => e.Score).Sum();
@@ -151,15 +151,22 @@ namespace Microsoft.Research.Uncertain
                 this.stack = initstack;
 
                 if (sampled != null)
+                {
+                    // force regeneration of this random primitive
+                    // note we reset this to false in the 
+                    // Visit(RandomPrimitive) method
                     sampled.ForceRegen = true;
+                }
+
+                // Run the program.
                 uncertain.Accept(this);
-                //if (sampled != null)
-                //    sampled.ForceRegen = false;
 
                 // TODO: should we return 0 mass samples?
                 //       0 IS a reasonable weight if all 
                 //       one wants to do is know about a
-                //       posterior
+                //       posterior - need to compute the score
+                //       from the Weighted<T1> object rather
+                //       than the trace.
                 var returnval = (Weighted<T1>)this.sample;
 
                 //if (returnval.Probability > 0)
@@ -178,10 +185,13 @@ namespace Microsoft.Research.Uncertain
                 Swap(ref trace, ref oldTrace);
                 if (oldTrace.Count > 0)
                 {
-                    var tmp = oldTrace.Select(e => e.Erp).Distinct().ToList();
-                    regenFrom = (int)Math.Floor(Extensions.NextRandom() * tmp.Count);
-                    sampled = tmp[regenFrom];
-                    //sampled = oldTrace[regenFrom].Erp;
+                    // A programmer induced dependence implies the trace can have
+                    // more than one copy of any given Random Primitive
+                    // only sample from the set of distinct RandomPrimitives
+                    // to avoid oversampling any particular RandomPrimitive.
+                    var distinct = oldTrace.Select(e => e.Erp).Distinct().ToList();
+                    regenFrom = (int)Math.Floor(Extensions.NextRandom() * distinct.Count);
+                    sampled = distinct[regenFrom];
                 }
                 trace.Clear();
 
@@ -197,9 +207,6 @@ namespace Microsoft.Research.Uncertain
         public void Visit<T1>(Where<T1> where)
         {
             this.stack = Tuple.Create(stack.Item1, stack.Item2, stack.Item3 + 1);
-            //var sampler = new MarkovChainMonteCarloSampler<T1>(where.source);
-            //foreach (var sample in sampler)
-            
             foreach (var sample in this.GetEnumerator<T1>(where.source))
             {
                 var tmp = sample.Value;
