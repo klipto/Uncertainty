@@ -50,42 +50,15 @@ namespace Microsoft.Research.Uncertain
             this.Score = score;
             this.Reused = reuse;
         }
-    }
 
-    internal class RandomPrimitiveSampler : IUncertainVisitor
-    {
-        public object Sample { get; private set; }
-        public double Score { get; private set; }
-        
-
-        public void Visit<T>(Where<T> where)
+        public override string ToString()
         {
-            throw new NotImplementedException();
-        }
-
-        public void Visit<T>(RandomPrimitive<T> erp)
-        {
-            ((RandomPrimitive)erp).ForceRegen = true;
-            var sample = erp.Sample(-1);
-            var score = erp.Score(sample);
-            ((RandomPrimitive)erp).ForceRegen = false;
-            this.Sample = sample;
-            this.Score = score;
-        }
-
-        public void Visit<TSource, TResult>(Select<TSource, TResult> select)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Visit<TSource, TCollection, TResult>(SelectMany<TSource, TCollection, TResult> selectmany)
-        {
-            throw new NotImplementedException();
+            return String.Format("<{0} {1} {2}>", this.Location, this.Sample, this.Reused);
         }
     }
 
 
-    internal class MarkovChainMonteCarloSampler<T> : IUncertainVisitor, ISampler<T>
+    public class MarkovChainMonteCarloSampler<T> : IUncertainVisitor, ISampler<T>
     {
         private readonly Uncertain<T> source;
         private List<TraceEntry> trace, oldTrace;
@@ -93,7 +66,7 @@ namespace Microsoft.Research.Uncertain
         protected int generation;
         private Address stack;
 
-        internal MarkovChainMonteCarloSampler(Uncertain<T> source)
+        public MarkovChainMonteCarloSampler(Uncertain<T> source)
         {
             this.source = source;
             this.generation = 1;
@@ -102,9 +75,9 @@ namespace Microsoft.Research.Uncertain
             this.oldTrace = new List<TraceEntry>();
         }
 
-        private static void Swap<T>(ref T lhs, ref T rhs)
+        private static void Swap<T1>(ref T1 lhs, ref T1 rhs)
         {
-            T temp;
+            T1 temp;
             temp = lhs;
             lhs = rhs;
             rhs = temp;
@@ -148,44 +121,38 @@ namespace Microsoft.Research.Uncertain
         private IEnumerable<Weighted<T1>> GetEnumerator<T1>(Uncertain<T1> uncertain)
         {
             var regenFrom = 0;
-            var r = new Random();
+
+            RandomPrimitive sampled = null;
             var initstack = this.stack;
 
-            // run once to get a trace
-            uncertain.Accept(this);
-            
-            // put into oldTrace
-            if (oldTrace.Count == 0)
-                Swap(ref trace, ref oldTrace);
-            
-            while (true)
+            do
             {
-                this.generation++;
-
-                // reset stack
                 this.stack = initstack;
 
-                var roll = r.NextDouble();
+                if (sampled != null)
+                    sampled.ForceRegen = true;
+                uncertain.Accept(this);
+                if (sampled != null)
+                    sampled.ForceRegen = false;
+
+                yield return (Weighted<T1>)this.sample;
+                
+                var roll = Extensions.NextRandom();
                 var acceptance = Accept(trace, oldTrace, regenFrom);
-                if (this.generation == 2 /* init */ || !(Math.Log(roll) < acceptance))
+                if (this.generation > 1 && !(Math.Log(roll) < acceptance))
                 {
                     // rollback proposal
                     trace.Clear();
                     trace.AddRange(oldTrace);
                 }
 
-                // yield sample
-                yield return (Weighted<T1>)this.sample;
-
                 Swap(ref trace, ref oldTrace);
-                regenFrom = (int)Math.Floor(r.NextDouble() * oldTrace.Count);
-                var erp = oldTrace[regenFrom].Erp;
+                regenFrom = (int)Math.Floor(Extensions.NextRandom() * oldTrace.Count);
+                sampled = oldTrace[regenFrom].Erp;
                 trace.Clear();
 
-                ((RandomPrimitive)erp).ForceRegen = true;
-                uncertain.Accept(this);
-                ((RandomPrimitive)erp).ForceRegen = false;                
-            }
+                this.generation++;
+            } while (true);
         }
 
         public IEnumerator<Weighted<T>> GetEnumerator()
@@ -196,6 +163,8 @@ namespace Microsoft.Research.Uncertain
         public void Visit<T1>(Where<T1> where)
         {
             this.stack = Tuple.Create(stack.Item1, stack.Item2, stack.Item3 + 1);
+            //var sampler = new MarkovChainMonteCarloSampler<T1>(where.source);
+            //foreach (var sample in sampler)
             foreach (var sample in this.GetEnumerator<T1>(where.source))
             {
                 if (where.Predicate(sample.Value))
@@ -208,6 +177,14 @@ namespace Microsoft.Research.Uncertain
 
         public void Visit<T1>(RandomPrimitive<T1> erp)
         {
+            if (erp is Constant<T1>)
+            {
+                // do not add to trace as we do not want to 
+                // resample constants
+                this.sample = new Weighted<T1>(erp.Sample(-1));
+                return;
+            }
+
             var prev = FindChoice(this.oldTrace, this.stack, erp);
             var reuse = prev.HasValue && ((RandomPrimitive)prev.Value.Erp).ForceRegen == false;
             if (reuse)

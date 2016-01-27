@@ -116,24 +116,26 @@ namespace Microsoft.Research.Willis
             }
         }
 
-        private IEnumerable<char> input;
+        private string input;
         private int counter;
+        private int pos;
 
-        public Parser(IEnumerable<char> input)
+        public Parser(string input)
         {
+            this.pos = 0;
             this.input = input;
             this.counter = 0;
         }
 
         private char Peek()
         {
-            return this.input.First();
+            return this.input[this.pos];
         }
 
         private void Eat(char item)
         {
             if (this.Peek() == item)
-                this.input = this.input.Skip(1);
+                this.pos++;
             else
                 throw new Exception(String.Format("Expected {0}; got {1}", item, this.Peek()));
         }
@@ -147,7 +149,7 @@ namespace Microsoft.Research.Willis
 
         private bool More()
         {
-            return this.input.Count() > 0;
+            return this.pos < this.input.Length;
         }
 
         private RegularExpression Atom()

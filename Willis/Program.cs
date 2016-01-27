@@ -149,8 +149,6 @@ namespace Microsoft.Research.Willis
                 return strs;
             };
 
-            //Func<string, IEnumerable<string>> identity = str => (Uncertain<string>) str;
-            //var edits = new[] { insert, delete, substitute, identity, makenongreedy, makegreedy };
             var edits = new[] { insert, delete, substitute, makenongreedy, makegreedy };
 
             var output = from edit in edits
@@ -164,7 +162,6 @@ namespace Microsoft.Research.Willis
 
             foreach (var item in recurse)
                 yield return item;
-            //return recurse;
         }
 
         static Uncertain<string> PossibleInterpretations2(string input)
@@ -247,15 +244,13 @@ namespace Microsoft.Research.Willis
 
             var output = from edit in edits
                          from editedinput in edit(input)
-                         where editedinput != String.Empty
-                         where Parser.IsExpression(editedinput)
+                         where editedinput != String.Empty && Parser.IsExpression(editedinput)
                          select editedinput;
-
+            
             var recurse = from edit in output
-                          from b in new Flip(0.000001)
-                          let next = b ? PossibleInterpretations2(edit) : String.Empty
+                          from b in new Flip(0.01)
+                          let next = b ? PossibleInterpretations2(edit) : edit
                           from recursivelyedited in next
-                          where recursivelyedited != String.Empty
                           select recursivelyedited;
             return recurse;
         }
@@ -298,15 +293,15 @@ namespace Microsoft.Research.Willis
         static Uncertain<string> CompilerListenerWithExample(string utterance, IList<Tuple<string, IEnumerable<Tuple<int, int, int>>>> examples)//string input, IEnumerable<Tuple<int,int,int>> correct)
         {
             var tmp = new Multinomial<Tuple<string, IEnumerable<Tuple<int, int, int>>>>(examples);
-            var program = from stmt in PossibleInterpretations(utterance, 2)
-                          from example in tmp
+            var program = from stmt in PossibleInterpretations2(utterance) //PossibleInterpretations(utterance, 2)
                           let re = new Parser(stmt).Parse()
                           let codes = new Compiler().Compile(re)
+                          from example in tmp
                           let matches = new Interpreter().Run(codes.ToList(), example.Item1)
                           where Cmp(matches, example.Item2)
                           select stmt;
 
-            return program.Inference();
+            return program.SampledInference(10000);
         }
 
         static Func<IEnumerable<Tuple<int, int, int>>, IEnumerable<Tuple<int, int, int>>, bool> Cmp = (a, b) =>
@@ -331,28 +326,28 @@ namespace Microsoft.Research.Willis
             var matches = new Interpreter().Run(codes, example);
             var examples = new[] { Tuple.Create(example, matches) };
 
-            foreach (var item in RegexpSpeaker(program, true).Support().OrderByDescending(k => k.Probability).Take(5))
-                Console.WriteLine(item);
+            //foreach (var item in RegexpSpeaker(program, true).Support().OrderByDescending(k => k.Probability).Take(5))
+            //    Console.WriteLine(item);
 
-            Console.WriteLine();
+            //Console.WriteLine();
 
-            foreach (var item in RegexpSpeaker(program, false).Support().OrderByDescending(k => k.Probability).Take(5))
-                Console.WriteLine(item);
+            //foreach (var item in RegexpSpeaker(program, false).Support().OrderByDescending(k => k.Probability).Take(5))
+            //    Console.WriteLine(item);
 
-            Console.WriteLine();
+            //Console.WriteLine();
 
-            foreach (var item in CompilerListener(program).Support().OrderByDescending(k => k.Probability).Take(5))
-                Console.WriteLine(item);
+            //foreach (var item in CompilerListener(program).Support().OrderByDescending(k => k.Probability).Take(5))
+            //    Console.WriteLine(item);
 
-            Console.WriteLine();
+            //Console.WriteLine();
 
             foreach (var item in CompilerListenerWithExample(program, examples).Support().OrderByDescending(k => k.Probability)) //;/.Take(5))
                 Console.WriteLine(item);
 
             Console.WriteLine();
-            var tmp1 = PossibleInterpretations(program, 1).SampledInference(100000).Support().OrderByDescending(k => k.Probability).Take(5);
-            foreach (var item in tmp1)
-                Console.WriteLine(item);
+            //var output = PossibleInterpretations2(program).SampledInference(100000).Support().OrderByDescending(k => k.Probability).Take(5);
+            //foreach (var item in output)
+            //    Console.WriteLine(item);
 
             int x = 10;
         }
