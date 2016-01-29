@@ -1,0 +1,61 @@
+﻿
+using Microsoft.Research.Uncertain;
+
+public static class LargeModel
+{
+
+	public static Uncertain<bool[]> program =
+		from a_0 in new Flip(0.01)
+		from a_1 in new Flip(0.01)
+		from a_2 in new Flip(0.01)
+		from a_3 in new Flip(0.01)
+		from a_4 in new Flip(0.01)
+		from a_5 in new Flip(0.01)
+		from a_6 in new Flip(0.01)
+		from a_7 in new Flip(0.01)
+		from a_8 in new Flip(0.01)
+		from a_9 in new Flip(0.01)
+		from a_10 in new Flip(0.01)
+		from a_11 in new Flip(0.01)
+		from a_12 in new Flip(0.01)
+		from a_13 in new Flip(0.01)
+		from a_14 in new Flip(0.01)
+		from a_15 in new Flip(0.01)
+		from a_16 in new Flip(0.9)
+		from a_17 in new Flip(0.9)
+		from a_18 in new Flip(0.9)
+		from a_19 in new Flip(0.9)
+		from a_20 in new Flip(0.9)
+		from a_21 in new Flip(0.9)
+		from a_22 in new Flip(0.9)
+		from a_23 in new Flip(0.9)
+		from a_24 in new Flip(0.9)
+		from a_25 in new Flip(0.9)
+		from a_26 in new Flip(0.9)
+		from a_27 in new Flip(0.9)
+		from a_28 in new Flip(0.9)
+		from a_29 in new Flip(0.9)
+		from a_30 in new Flip(0.01)
+		from a_31 in new Flip(0.01)
+		from a_32 in new Flip(0.01)
+		from a_33 in new Flip(0.01)
+		from a_34 in new Flip(0.01)
+		from a_35 in new Flip(0.01)
+		from a_36 in new Flip(0.01)
+		from a_37 in new Flip(0.01)
+		from a_38 in new Flip(0.01)
+		from a_39 in new Flip(0.01)
+		from a_40 in new Flip(0.01)
+		from a_41 in new Flip(0.01)
+		from a_42 in new Flip(0.01)
+		from a_43 in new Flip(0.01)
+		from a_44 in new Flip(0.01)
+		from a_45 in new Flip(0.01)
+		from a_46 in new Flip(0.01)
+		from a_47 in new Flip(0.01)
+		from a_48 in new Flip(0.01)
+		from a_49 in new Flip(0.01)
+	    select new [] {
+		a_0,a_1,a_2,a_3,a_4,a_5,a_6,a_7,a_8,a_9,a_10,a_11,a_12,a_13,a_14,a_15,a_16,a_17,a_18,a_19,a_20,a_21,a_22,a_23,a_24,a_25,a_26,a_27,a_28,a_29,a_30,a_31,a_32,a_33,a_34,a_35,a_36,a_37,a_38,a_39,a_40,a_41,a_42,a_43,a_44,a_45,a_46,a_47,a_48,a_49
+		};
+}

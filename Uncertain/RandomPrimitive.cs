@@ -33,8 +33,6 @@ using System.Collections;
 namespace Microsoft.Research.Uncertain
 {
 
-    // TODDM: Note we require structural equatable for new 
-    // not yet complete MCMC sampler.
     public interface RandomPrimitive : IStructuralEquatable 
     {
         bool ForceRegen { get; set; }

@@ -58,6 +58,11 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="LargeModel.cs">
+      <DependentUpon>LargeModel.tt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
     <Compile Include="MoreBaseTests.cs" />
     <Compile Include="PointmassTests.cs" />
     <Compile Include="PPLTests.cs" />
@@ -73,6 +78,12 @@
       <Project>{62dbb61c-a633-448d-80bb-37b407e0b3ac}</Project>
       <Name>Uncertain</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="LargeModel.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>LargeModel.cs</LastGenOutput>
+    </Content>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

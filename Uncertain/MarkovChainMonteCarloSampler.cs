@@ -57,6 +57,65 @@ namespace Microsoft.Research.Uncertain
         }
     }
 
+    internal class TraceEntryComparer : IEqualityComparer<IList<TraceEntry>>
+    {
+        public bool Equals(IList<TraceEntry> x, IList<TraceEntry> y)
+        {
+            if (x.Count != y.Count)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < x.Count; i++)
+            {
+                var a = x[i];
+                var b = y[i];
+                if (a.Location != b.Location)
+                    return false;
+                if (StructuralComparisons.StructuralEqualityComparer.Equals(a.Erp, b.Erp) == false)
+                    return false;
+            }
+
+            return true;
+        }
+
+        public int GetHashCode(IList<TraceEntry> obj)
+        {
+            var hashcode = 0;
+            foreach(var e in obj)
+            {
+                var a = StructuralComparisons.StructuralEqualityComparer.GetHashCode(e.Location);
+                var b = StructuralComparisons.StructuralEqualityComparer.GetHashCode(e.Erp);
+                hashcode ^= a * b;
+            }
+            return hashcode;
+        }
+    }
+
+    //internal class SingleSampler : IUncertainVisitor
+    //{
+    //    internal object Sample { get; private set; }
+
+    //    public void Visit<T>(Where<T> where)
+    //    {
+    //        throw new NotImplementedException();
+    //    }
+
+    //    public void Visit<T>(RandomPrimitive<T> erp)
+    //    {
+    //        this.Sample = erp.Sample(-1);
+    //    }
+
+    //    public void Visit<TSource, TResult>(Select<TSource, TResult> select)
+    //    {
+    //        throw new NotImplementedException();
+    //    }
+
+    //    public void Visit<TSource, TCollection, TResult>(SelectMany<TSource, TCollection, TResult> selectmany)
+    //    {
+    //        throw new NotImplementedException();
+    //    }
+    //}
 
     public class MarkovChainMonteCarloSampler<T> : IUncertainVisitor, ISampler<T>
     {
@@ -65,6 +124,7 @@ namespace Microsoft.Research.Uncertain
         private object sample;
         protected int generation;
         private Address stack;
+        private readonly IDictionary<IList<TraceEntry>, int> cache;
 
         public MarkovChainMonteCarloSampler(Uncertain<T> source)
         {
@@ -73,6 +133,8 @@ namespace Microsoft.Research.Uncertain
             this.stack = Tuple.Create(0, 0, 0);
             this.trace = new List<TraceEntry>();
             this.oldTrace = new List<TraceEntry>();
+
+            this.cache = new Dictionary<IList<TraceEntry>, int>(new TraceEntryComparer());
         }
 
         private static void Swap<T1>(ref T1 lhs, ref T1 rhs)
@@ -145,21 +207,21 @@ namespace Microsoft.Research.Uncertain
 
             RandomPrimitive sampled = null;
             var initstack = this.stack;
+            //var sampler = new SingleSampler();
 
             do
             {
                 this.stack = initstack;
 
-                if (sampled != null)
-                {
-                    // force regeneration of this random primitive
-                    // note we reset this to false in the 
-                    // Visit(RandomPrimitive) method
-                    sampled.ForceRegen = true;
-                }
-
                 // Run the program.
                 uncertain.Accept(this);
+
+                //int count;
+                //if (!this.cache.TryGetValue(this.trace, out count))
+                //{
+                //    count = 0;
+                //}
+                //this.cache[this.trace] = count + 1;
 
                 // TODO: should we return 0 mass samples?
                 //       0 IS a reasonable weight if all 
@@ -189,10 +251,29 @@ namespace Microsoft.Research.Uncertain
                     // more than one copy of any given Random Primitive
                     // only sample from the set of distinct RandomPrimitives
                     // to avoid oversampling any particular RandomPrimitive.
+                    //var dict = new Dictionary<RandomPrimitive, IList<int>>();
+                    //var pos = 0;
+                    //foreach(var e in oldTrace)
+                    //{
+                    //    IList<int> lst;
+                    //    if (! dict.TryGetValue(e.Erp, out lst))
+                    //    {
+                    //        lst = new List<int>();
+                    //        dict[e.Erp] = lst;
+                    //    }
+                    //    lst.Add(pos++);
+                    //}
+                    //regenFrom = (int)Math.Floor(Extensions.NextRandom() * dict.Keys.Count);
+                    //sampled = dict.Keys.ElementAt(regenFrom);
                     var distinct = oldTrace.Select(e => e.Erp).Distinct().ToList();
                     regenFrom = (int)Math.Floor(Extensions.NextRandom() * distinct.Count);
                     sampled = distinct[regenFrom];
-                }
+
+                    // force regeneration of this random primitive
+                    // note we reset this to false in the 
+                    // Visit(RandomPrimitive) method
+                    sampled.ForceRegen = true;                    
+                }                
                 trace.Clear();
 
                 this.generation++;

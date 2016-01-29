@@ -345,15 +345,15 @@ namespace Microsoft.Research.Willis
             //foreach (var item in CompilerListenerWithExample(program, examples).Support().OrderByDescending(k => k.Probability)) //;/.Take(5))
             //    Console.WriteLine(item);
 
-                //var tmp = new Multinomial<Tuple<string, IEnumerable<Tuple<int, int, int>>>>(examples);
-            var p = from stmt in PossibleInterpretations2("(a)")
+            //var tmp = new Multinomial<Tuple<string, IEnumerable<Tuple<int, int, int>>>>(examples);
+            var p = from stmt in PossibleInterpretations2("(.*)(.*)(c)")
                     let re1 = new Parser(stmt).Parse()
                     let codes1 = new Compiler().Compile(re1)
                     let matches1 = new Interpreter().Run(codes1.ToList(), example1.Item1)
                     where Cmp(matches1, example1.Item2)
                     select stmt;
 
-            var sampler = new MarkovChainMonteCarloSampler<string>(p);            
+            var sampler = new MarkovChainMonteCarloSampler<string>(p);
             var output = sampler.Take(1).ToList();
 
             //var output = PossibleInterpretations2(program).SampledInference(100000).Support().OrderByDescending(k => k.Probability).Take(5).ToList();
