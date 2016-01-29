@@ -79,7 +79,7 @@ namespace UncertainTests
                                       let noise = r.NextGaussian(0, 0.01)
                                       let vad = i > 15 && i < 30 ? 0.9 : 0.01
                                       let param = Math.Abs(vad + noise)
-                                      let f = new Flip(param > 1 ? 1 : param)
+                                      let f = new Bernoulli(param > 1 ? 1 : param)
                                       select f).ToArray();
             // history operator we chatted about
             Uncertain<bool[]> history = data.History(N);
@@ -155,13 +155,14 @@ namespace UncertainTests
                 FunctionalList.Empty<T>(),
                 (i, j) =>
                 {
-                    return i.SelectMany(acc => j, (f, g) => FunctionalList.Cons(g, f));
+                    return from lst in i
+                           from sample in j
+                           select FunctionalList.Cons(sample, lst);
                 },
-                k =>
+                uncertainlst =>
                 {
-                    return (from lst in k
-                            let asArray = FunctionalList.ToArray(lst)
-                            select asArray);
+                    return from sample in uncertainlst
+                           select FunctionalList.ToArray(sample);
                 });
             return output;
         }
