@@ -69,20 +69,11 @@ namespace UncertainTests
             int x = 10;
         }
 
-        [TestMethod]
-        public void TestHMM2()
+        static Uncertain<Tuple<string, string, string>> HMM(string[] obs)
         {
             var states = new[] { "Healthy", "Fever" };
 
             var emits = new[] { "normal", "cold", "dizzy" };
-
-            var source = new[] {
-                new Multinomial<string>(emits, new [] {0.8, 0.1, 0.1}),
-                new Multinomial<string>(emits, new [] {0.2, 0.7, 0.1}),
-                new Multinomial<string>(emits, new [] {0.05, 0.05, 0.9}),
-            };
-
-            var observations = source.History(3);
 
             var start_probability = new Multinomial<string>(states, new[] { 0.6, 0.4 });
 
@@ -99,36 +90,70 @@ namespace UncertainTests
             Func<string, Multinomial<string>> emission_probability = state =>
             {
                 if (state == "Healthy")
-                    return new Multinomial<string>(new[] { "normal", "cold", "dizzy" }, new[] { 0.5, 0.4, 0.1 });
+                    return new Multinomial<string>(emits, new[] { 0.5, 0.4, 0.1 });
                 if (state == "Fever")
-                    return new Multinomial<string>(new[] { "normal", "cold", "dizzy" }, new[] { 0.1, 0.3, 0.6 });
+                    return new Multinomial<string>(emits, new[] { 0.1, 0.3, 0.6 });
 
                 throw new Exception("Unknown state");
             };
 
+            return
+                from prior in start_probability
+
+                from state0 in transition_probability(prior)
+                from emit0 in emission_probability(state0)
+                where obs[0] == emit0
+
+                from state1 in transition_probability(state0)
+                from emit1 in emission_probability(state1)
+                where obs[1] == emit1
+
+                from state2 in transition_probability(state1)
+                from emit2 in emission_probability(state2)
+                where obs[2] == emit2
+
+                select Tuple.Create(state0, state1, state2);
+        }
+
+        [TestMethod]
+        public void TestHMM2()
+        {
+            var states = new[] { "Healthy", "Fever" };
+
+            var emits = new[] { "normal", "cold", "dizzy" };
+
+            var source = new[] {
+                new Multinomial<string>(emits, new [] {0.8, 0.1, 0.1}),
+                new Multinomial<string>(emits, new [] {0.2, 0.7, 0.1}),
+                new Multinomial<string>(emits, new [] {0.05, 0.05, 0.9}),
+            };
+
+            var observations = source.History(3);
             var program = from obs in observations
+                          from result in HMM(obs)
+                          select result;
 
-                          from prior in start_probability
-
-                          from state0 in transition_probability(prior)
-                          from emit0 in emission_probability(state0)
-                          where obs[0] == emit0
-
-                          from state1 in transition_probability(state0)
-                          from emit1 in emission_probability(state1)
-                          where obs[1] == emit1
-
-                          from state2 in transition_probability(state1)
-                          from emit2 in emission_probability(state2)
-                          where obs[2] == emit2                          
-
-                          select new { state0, state1, state2 };
+            var program1 = from obs in observations
+                          from result in HMM(obs).Inference()
+                          select result;
 
             var output = program.Inference().Support().OrderByDescending(k => k.Probability).ToList();
-            var sampled = program.SampledInference(1000).Support().OrderByDescending(k => k.Probability).ToList();
+            var output1 = program1.Inference().Support().OrderByDescending(k => k.Probability).ToList();
 
-            Assert.AreEqual(output[0].Value, sampled[0].Value);
-            Assert.IsTrue(Math.Abs(output[0].Probability - sampled[0].Probability) < 0.1);
+            var timer = new System.Diagnostics.Stopwatch();
+
+            timer.Start();
+            var sampled = program.SampledInference(10000).Support().OrderByDescending(k => k.Probability).ToList();
+            timer.Stop();
+            System.Diagnostics.Debug.WriteLine(timer.Elapsed);
+            timer.Reset();
+            timer.Start();
+            var sampled1 = program1.SampledInference(10000).Support().OrderByDescending(k => k.Probability).ToList();
+            timer.Stop();
+            System.Diagnostics.Debug.WriteLine(timer.Elapsed);
+
+            //Assert.AreEqual(output[0].Value, sampled[0].Value);
+            //Assert.IsTrue(Math.Abs(output[0].Probability - sampled[0].Probability) < 0.1);
 
             int x = 10;
         }
@@ -246,7 +271,7 @@ namespace UncertainTests
     public static class MyExtensions
     {
         public static Uncertain<T[]> History<T>(this IEnumerable<Uncertain<T>> source, int num)
-        {           
+        {
             Uncertain<T[]> output = source.Take(num).Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
                 FunctionalList.Empty<T>(),
                 (i, j) =>
@@ -259,7 +284,6 @@ namespace UncertainTests
                 {
                     return from sample in uncertainlst
                            select sample.Reverse().ToArray();
-                           //FunctionalList.ToArray(sample);
                 });
             return output;
         }
