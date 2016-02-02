@@ -180,30 +180,62 @@ namespace UncertainTests
             return null;
         }
 
+        [TestMethod]
+        public void VAD2()
+        {
+            Func<Audio, bool> Detect_Speech_Sample = _ => true;
+            Func<Uncertain<Audio>, Uncertain<bool>> Detect_Speech_Sample_U = src =>
+            {
+                return from item in src
+                       select Detect_Speech_Sample(item);
+            };
+
+            var program = from audio in Enumerable.Empty<Uncertain<Audio>>().History(50)
+                          let tmp = audio.Select(Detect_Speech_Sample_U)
+                          let tmp1 = tmp.USeq(50)
+                          let tmp2 = tmp1.Select(Intervalize)
+                          select tmp2;
+
+            var program0 =from audio in Enumerable.Empty<Uncertain<Audio>>().History(50)
+                          let tmp = audio.Select(Detect_Speech_Sample_U)
+                          let tmp1 = tmp.USeq2(Intervalize)
+                          select tmp1;
+
+            var program1 = from audio in Enumerable.Empty<Uncertain<Audio>>().History(50)
+                           let tmp = audio.Select(Detect_Speech_Sample_U).ToArray()
+                           let tmp1 = PIntervalize(tmp)
+                           select tmp1;
+
+            var program2 = from audio in Enumerable.Empty<Uncertain<Audio>>().History1(50)
+                           let tmp = audio.Select(k => k.Select(Detect_Speech_Sample).ToArray()).Select(Intervalize)
+                           let tmp1 = tmp.Select(Intervalize)
+                           select tmp1;
+        }
 
         [TestMethod]
         public void VAD()
         {
-            Func<IEnumerable<Audio>> ReadMicrophone = () => Enumerable.Empty<Audio>();
-            Func<Audio, bool> Detect_Speech_Sample = _ => true;
-            Func<Audio, Uncertain<bool>> Detect_Speech_Sample_Uncertain = _ => true;
+            //Func<IEnumerable<Audio>> ReadMicrophone = () => Enumerable.Empty<Audio>();
+            //Func<Audio, bool> Detect_Speech_Sample = _ => true;
+            //Func<Audio, Uncertain<bool>> Detect_Speech_Sample_Uncertain = _ => true;
 
-            var speaking = from audio in ReadMicrophone()
-                           select Detect_Speech_Sample(audio);
-            var program1 = from speaking_history in speaking.History(50)
-                           select Intervalize(speaking_history);
+            //var speaking = from audio in ReadMicrophone()
+            //               select Detect_Speech_Sample(audio);
+            //var program1 = from speaking_history in speaking.History(50)
+            //               select Intervalize(speaking_history);
 
-            var speakingu = from audio in ReadMicrophone()
-                            select Detect_Speech_Sample_Uncertain(audio);
-            var program2 = from speaking_historyu in speakingu.History(50)
-                           select speaking_historyu.USeq2(Intervalize);
+            //var speakingu = from audio in ReadMicrophone()
+            //                select Detect_Speech_Sample_Uncertain(audio);
+            //var program2 = from speaking_historyu in speakingu.History(50)
+            //               select speaking_historyu.USeq2(Intervalize);
 
-            var program3 = from speaking_historyu in speakingu.History(50)
-                           from item in speaking_historyu.USeq(50)
-                           select Intervalize(item);
+            ////var program3 = from speaking_historyu in speakingu.History(50)
+            ////               select speaking_historyu
+            ////               //from item in speaking_historyu.USeq(50)
+            ////               s//elect Intervalize(item);
 
-            var program4 = from speaking_historyu in speakingu.History(50)
-                           select PIntervalize(speaking_historyu);
+            //var program4 = from speaking_historyu in speakingu.History(50)
+            //               select PIntervalize(speaking_historyu);
 
             //var speaking = from sample in audio select Detect_Speech_Sample(sample);
             //var speaking_history = speaking.Take(50).ToArray();
@@ -279,7 +311,11 @@ namespace UncertainTests
 
     public static class StreamExtensions
     {
-        public static IEnumerable<T[]> History<T>(this IEnumerable<T> source, int num)
+        public static IEnumerable<IEnumerable<Uncertain<T>>> History<T>(this IEnumerable<Uncertain<T>> source, int num)
+        {
+            return null;
+        }
+        public static IEnumerable<Uncertain<T[]>> History1<T>(this IEnumerable<Uncertain<T>> source, int num)
         {
             return null;
         }
@@ -364,7 +400,7 @@ namespace UncertainTests
             return output;
         }
 
-        public static Uncertain<R[]> USeq2<T, R>(this Uncertain<T>[] source, Func<T[], R[]> selector)
+        public static Uncertain<R[]> USeq2<T, R>(this IEnumerable<Uncertain<T>> source, Func<T[], R[]> selector)
         {
             Uncertain<R[]> output = source.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<R[]>>(
                 FunctionalList.Empty<T>(),

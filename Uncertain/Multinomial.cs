@@ -37,6 +37,8 @@ namespace Microsoft.Research.Uncertain
     {
         private readonly IEnumerable<Weighted<T>> options;
 
+        public Multinomial(params T[] states) : this(states as IEnumerable<T>) { }
+
         public Multinomial(IEnumerable<T> states) :
             this(states, Enumerable.Repeat(1.0 / states.Count(), states.Count())) 
         {

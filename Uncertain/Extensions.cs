@@ -234,18 +234,6 @@ namespace Microsoft.Research.Uncertain
                 (a, b) => new Weighted<TResult>() { Value = resultSelector(a, b), Probability = 1.0 }
             );
         }
-
-        public static IEnumerable<Uncertain<TResult>> SelectMany<TSource, TCollection, TResult>(
-            this IEnumerable<TSource> first,
-            Func<TSource, Uncertain<TCollection>> collectionSelector,
-            Func<TSource, TCollection, TResult> resultSelector)
-        {
-            return null;
-            //foreach(var item in first)
-            //{
-                
-            //}
-        }
     }
 }
 
