@@ -69,7 +69,7 @@ namespace UncertainTests
             int x = 10;
         }
 
-        static Uncertain<Tuple<string, string, string>> HMM(string[] obs)
+        static Uncertain<string[]> HMM(string[] obs)
         {
             var states = new[] { "Healthy", "Fever" };
 
@@ -112,43 +112,54 @@ namespace UncertainTests
                 from emit2 in emission_probability(state2)
                 where obs[2] == emit2
 
-                select Tuple.Create(state0, state1, state2);
+                select new[] { state0, state1, state2 };
         }
 
         [TestMethod]
         public void TestHMM2()
         {
+            var comparer = new SequenceComparer<string>();
             var states = new[] { "Healthy", "Fever" };
-
             var emits = new[] { "normal", "cold", "dizzy" };
 
-            var source = new[] {
+            Uncertain<string>[] source = new[] {
                 new Multinomial<string>(emits, new [] {0.8, 0.1, 0.1}),
                 new Multinomial<string>(emits, new [] {0.2, 0.7, 0.1}),
                 new Multinomial<string>(emits, new [] {0.05, 0.05, 0.9}),
             };
 
-            var observations = source.History(3);
+            Uncertain<string[]> observations = source.USeq(3);
+
             var program = from obs in observations
                           from result in HMM(obs)
                           select result;
 
             var program1 = from obs in observations
-                          from result in HMM(obs).Inference()
+                          from result in HMM(obs).Inference(comparer)
                           select result;
 
-            var output = program.Inference().Support().OrderByDescending(k => k.Probability).ToList();
-            var output1 = program1.Inference().Support().OrderByDescending(k => k.Probability).ToList();
+            var program2 = from obs in observations.Inference(comparer)
+                           from result in HMM(obs).Inference(comparer)
+                           select result;
+
+            var output = program.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
+            var output1 = program1.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
+            var output2 = program2.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
 
             var timer = new System.Diagnostics.Stopwatch();
 
             timer.Start();
-            var sampled = program.SampledInference(10000).Support().OrderByDescending(k => k.Probability).ToList();
+            var sampled = program.SampledInference(10000, comparer).Support().OrderByDescending(k => k.Probability).ToList();
             timer.Stop();
             System.Diagnostics.Debug.WriteLine(timer.Elapsed);
             timer.Reset();
             timer.Start();
-            var sampled1 = program1.SampledInference(10000).Support().OrderByDescending(k => k.Probability).ToList();
+            var sampled1 = program1.SampledInference(10000, comparer).Support().OrderByDescending(k => k.Probability).ToList();
+            timer.Stop();
+            System.Diagnostics.Debug.WriteLine(timer.Elapsed);
+            timer.Reset();
+            timer.Start();
+            var sampled2 = program2.SampledInference(10000, comparer).Support().OrderByDescending(k => k.Probability).ToList();
             timer.Stop();
             System.Diagnostics.Debug.WriteLine(timer.Elapsed);
 
@@ -157,6 +168,62 @@ namespace UncertainTests
 
             int x = 10;
         }
+
+        struct Audio { }
+
+        public static bool[] Intervalize(bool[] x)
+        {
+            return x;
+        }
+        public static Uncertain<bool[]> PIntervalize(Uncertain<bool>[] x)
+        {
+            return null;
+        }
+
+
+        [TestMethod]
+        public void VAD()
+        {
+            Func<IEnumerable<Audio>> ReadMicrophone = () => Enumerable.Empty<Audio>();
+            Func<Audio, bool> Detect_Speech_Sample = _ => true;
+            Func<Audio, Uncertain<bool>> Detect_Speech_Sample_Uncertain = _ => true;
+
+            var speaking = from audio in ReadMicrophone()
+                           select Detect_Speech_Sample(audio);
+            var program1 = from speaking_history in speaking.History(50)
+                           select Intervalize(speaking_history);
+
+            var speakingu = from audio in ReadMicrophone()
+                            select Detect_Speech_Sample_Uncertain(audio);
+            var program2 = from speaking_historyu in speakingu.History(50)
+                           select speaking_historyu.USeq2(Intervalize);
+
+            var program3 = from speaking_historyu in speakingu.History(50)
+                           from item in speaking_historyu.USeq(50)
+                           select Intervalize(item);
+
+            var program4 = from speaking_historyu in speakingu.History(50)
+                           select PIntervalize(speaking_historyu);
+
+            //var speaking = from sample in audio select Detect_Speech_Sample(sample);
+            //var speaking_history = speaking.Take(50).ToArray();
+            //var ints = from tmp in speaking_history select Intervalize(tmp);
+
+
+            //var speaking_uncertain = from sample in audio select Detect_Speech_Sample_Uncertain(sample);
+            //var speaking_history_uncertain = speaking_uncertain.Take(50).ToArray();
+
+
+            //var program2 = from audio in (Uncertain<Audio>)ReadMicrophone()
+            //               from speaking_history in Detect_Speech_Sample(audio).History(50)
+            //               let interval = Intervalize(speaking_history)
+            //               select interval;
+
+            //var program3 = from audio in (Uncertain<Audio>)ReadMicrophone()
+            //               let speaking_history = Detect_Speech_Sample(audio)
+            //               select ProbabilisticIntervalize(speaking_history);
+        }
+
 
         [TestMethod]
         public void TestDan()
@@ -172,11 +239,11 @@ namespace UncertainTests
                                       let f = new Bernoulli(param > 1 ? 1 : param)
                                       select f).ToArray();
             // history operator we chatted about
-            Uncertain<bool[]> history = data.History(N);
+            Uncertain<bool[]> history = data.USeq(N);
 
             // Inference computes a weighted bool[] object: effectively a histogram
             // The call to SampledInference needs to know (i) how many samples to take and how to compare bool[]
-            Uncertain<bool[]> posterior = history.SampledInference(10000, new BoolArrayEqualityComparer());
+            Uncertain<bool[]> posterior = history.SampledInference(10000, new SequenceComparer<bool>());
 
             // now inspect by materializing a list
             List<Weighted<bool[]>> top5 = posterior
@@ -194,7 +261,7 @@ namespace UncertainTests
 
             Func<bool[], bool[]> Intervalize = _ => _;
 
-            var program = from bools in data.History(N)
+            var program = from bools in data.USeq(N)
                           select Intervalize(bools);
 
             // now inspect by materializing a list
@@ -209,6 +276,15 @@ namespace UncertainTests
             int x = 10;
         }
     }
+
+    public static class StreamExtensions
+    {
+        public static IEnumerable<T[]> History<T>(this IEnumerable<T> source, int num)
+        {
+            return null;
+        }
+    }
+
     public class FunctionalList<T> : IEnumerable<T>
     {
         // Creates a new list that is empty
@@ -270,7 +346,7 @@ namespace UncertainTests
 
     public static class MyExtensions
     {
-        public static Uncertain<T[]> History<T>(this IEnumerable<Uncertain<T>> source, int num)
+        public static Uncertain<T[]> USeq<T>(this IEnumerable<Uncertain<T>> source, int num)
         {
             Uncertain<T[]> output = source.Take(num).Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
                 FunctionalList.Empty<T>(),
@@ -287,11 +363,31 @@ namespace UncertainTests
                 });
             return output;
         }
+
+        public static Uncertain<R[]> USeq2<T, R>(this Uncertain<T>[] source, Func<T[], R[]> selector)
+        {
+            Uncertain<R[]> output = source.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<R[]>>(
+                FunctionalList.Empty<T>(),
+                (i, j) =>
+                {
+                    return from lst in i
+                           from sample in j
+                           select FunctionalList.Cons(sample, lst);
+                },
+                uncertainlst =>
+                {
+                    return from sample in uncertainlst
+                           let vec = sample.Reverse().ToArray()
+                           select selector(vec);
+                });
+            return output;
+        }
+
     }
 
-    internal class BoolArrayEqualityComparer : IEqualityComparer<bool[]>
+    internal class SequenceComparer<T> : IEqualityComparer<T[]> where T : IComparable<T>
     {
-        public bool Equals(bool[] x, bool[] y)
+        public bool Equals(T[] x, T[] y)
         {
             if (object.ReferenceEquals(x, y))
                 return true;
@@ -300,16 +396,16 @@ namespace UncertainTests
                 return false;
 
             for (int i = 0; i < x.Length; i++)
-                if (x[i] != y[i])
+                if (!x[i].Equals(y[i]))
                     return false;
             return true;
         }
 
-        public int GetHashCode(bool[] obj)
+        public int GetHashCode(T[] obj)
         {
             var hash = obj.Length;
             for (int i = 0; i < obj.Length; i++)
-                hash ^= obj[i] ? 11 : 13;
+                hash ^= obj[i].GetHashCode();
             return hash;
         }
     }
