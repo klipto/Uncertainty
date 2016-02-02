@@ -28,6 +28,7 @@
 */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.Research.Uncertain
 {
@@ -54,7 +55,9 @@ namespace Microsoft.Research.Uncertain
 
         protected override IEnumerable<Weighted<T>> GetSupport()
         {
-            throw new Exception("Infnite support");
+            foreach (var i in Enumerable.Range(min, max - min))
+                yield return new Weighted<T>(i);
+            //throw new Exception("Infnite support");
         }
 
         protected override T GetSample()

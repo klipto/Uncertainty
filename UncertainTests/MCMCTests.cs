@@ -257,6 +257,49 @@ namespace UncertainTests
         }
 
 
+        private static int Func(int state, int input)
+        {
+            state += input;
+            return state;
+        }
+
+        private static IEnumerable<Uncertain<int>> LiftedFunc(IEnumerable<Uncertain<int>> unput)
+        {
+            Uncertain<int> ustate = 0;
+            foreach (var u in unput)
+            {
+                ustate = from s in ustate
+                         from i in u
+                         let f = Func(s, i)
+                         select f;
+                yield return ustate;
+            }
+        }
+
+        [TestMethod]
+        public void TestLifting()
+        {
+            var input = Enumerable.Range(0, 7);
+            var unput = input.Select(_ => new Uniform<int>(0, 3));
+
+            var state = 0;
+            foreach(var i in input)
+            {
+                state = Func(state, i);
+            }
+
+
+            var data = LiftedFunc(unput).USeq(2);
+            
+            var ustate = LiftedFunc(unput).Last();
+            var output = ustate.Inference().Support().OrderByDescending(k => k.Probability).ToList();
+
+            var output1 = data.Inference(new SequenceComparer<int>()).Support().OrderByDescending(k => k.Probability).ToList();
+
+            int x = 10;
+        }
+
+
         [TestMethod]
         public void TestDan()
         {
@@ -399,6 +442,52 @@ namespace UncertainTests
                 });
             return output;
         }
+
+        //public static Uncertain<T[]> MarkovModel<T>(this Uncertain<IEnumerable<T>> observations, Uncertain<T> init, Func<T, Uncertain<T>> transition, Func<T, Uncertain<T>> emission) where T : IEquatable<T>
+        //{
+        //    Func<T, Uncertain<T[]>> RunOne 
+
+        //    return from obs in observations
+        //           select
+        //    {
+        //        var initlst = from prior in init
+        //                      select FunctionalList.Cons(prior, FunctionalList.Empty<T>());
+
+        //        return obs.Aggregate<T, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
+        //            initlst,
+        //            (list, obs_i) =>
+        //            {
+        //                var program = from head in list
+        //                              let state = head.Head
+        //                              from next in transition(state)
+        //                              from emit in emission(next)
+        //                              where obs_i.Equals(emit)
+        //                              select FunctionalList.Cons(next, head);
+        //                return program;
+        //            },
+        //            uncertainlst =>
+        //            {
+        //                return from sample in uncertainlst
+        //                       select sample.Reverse().ToArray();
+        //            });
+        //        });
+
+        //    return foo;
+        //    //Uncertain < T[] > output = observations.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
+        //    //    FunctionalList.Empty<T>(),
+        //    //    (i, j) =>
+        //    //    {
+        //    //        return from lst in i
+        //    //               from sample in j
+        //    //               select FunctionalList.Cons(sample, lst);
+        //    //    },
+        //    //    uncertainlst =>
+        //    //    {
+        //    //        return from sample in uncertainlst
+        //    //               select sample.Reverse().ToArray();
+        //    //    });
+        //    //return output;
+        //}
 
         public static Uncertain<R[]> USeq2<T, R>(this IEnumerable<Uncertain<T>> source, Func<T[], R[]> selector)
         {
