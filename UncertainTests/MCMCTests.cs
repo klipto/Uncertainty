@@ -115,6 +115,37 @@ namespace UncertainTests
                 select new[] { state0, state1, state2 };
         }
 
+        static Uncertain<string[]> HMM2(Uncertain<string[]> observations)
+        {
+            var states = new[] { "Healthy", "Fever" };
+
+            var emits = new[] { "normal", "cold", "dizzy" };
+
+            var start_probability = new Multinomial<string>(states, new[] { 0.6, 0.4 });
+
+            Func<string, Multinomial<string>> transition_probability = state =>
+            {
+                if (state == "Healthy")
+                    return new Multinomial<string>(states, new[] { 0.7, 0.3 });
+                if (state == "Fever")
+                    return new Multinomial<string>(states, new[] { 0.4, 0.6 });
+
+                throw new Exception("Unknown state");
+            };
+
+            Func<string, Multinomial<string>> emission_probability = state =>
+            {
+                if (state == "Healthy")
+                    return new Multinomial<string>(emits, new[] { 0.5, 0.4, 0.1 });
+                if (state == "Fever")
+                    return new Multinomial<string>(emits, new[] { 0.1, 0.3, 0.6 });
+
+                throw new Exception("Unknown state");
+            };
+
+            return observations.MarkovModel<string>(start_probability, transition_probability, emission_probability);            
+        }
+
         [TestMethod]
         public void TestHMM2()
         {
@@ -144,7 +175,8 @@ namespace UncertainTests
 
             var output = program.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
             var output1 = program1.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
-            var output2 = program2.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
+            var output2 = program2.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();            
+            var output3 = HMM2(observations).Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
 
             var timer = new System.Diagnostics.Stopwatch();
 
@@ -163,8 +195,56 @@ namespace UncertainTests
             timer.Stop();
             System.Diagnostics.Debug.WriteLine(timer.Elapsed);
 
-            //Assert.AreEqual(output[0].Value, sampled[0].Value);
-            //Assert.IsTrue(Math.Abs(output[0].Probability - sampled[0].Probability) < 0.1);
+            Assert.IsTrue(comparer.Equals(output[0].Value, sampled[0].Value));
+            Assert.IsTrue(Math.Abs(output[0].Probability - sampled[0].Probability) < 0.1);
+
+            Assert.IsTrue(comparer.Equals(output[0].Value, output3[0].Value));
+            Assert.IsTrue(Math.Abs(output[0].Probability - output3[0].Probability) < 0.1);
+
+            int x = 10;
+        }
+
+        [TestMethod]
+        public void TestHMM3()
+        {
+            var comparer = new SequenceComparer<string>();
+            var states = new[] { "Healthy", "Fever" };
+            var emits = new[] { "normal", "cold", "dizzy" };
+
+            var start_probability = new Multinomial<string>(states, new[] { 0.6, 0.4 });
+
+            Func<string, Multinomial<string>> transition_probability = state =>
+            {
+                if (state == "Healthy")
+                    return new Multinomial<string>(states, new[] { 0.7, 0.3 });
+                if (state == "Fever")
+                    return new Multinomial<string>(states, new[] { 0.4, 0.6 });
+
+                throw new Exception("Unknown state");
+            };
+
+            Func<string, Multinomial<string>> emission_probability = state =>
+            {
+                if (state == "Healthy")
+                    return new Multinomial<string>(emits, new[] { 0.5, 0.4, 0.1 });
+                if (state == "Fever")
+                    return new Multinomial<string>(emits, new[] { 0.1, 0.3, 0.6 });
+
+                throw new Exception("Unknown state");
+            };
+
+            var r = new Random(0);
+
+            var observations = Enumerable.Range(0, 20).Select(_ =>
+             {
+                 var probs = new[] { r.NextDouble(), r.NextDouble(), r.NextDouble() };
+                 double total = probs.Sum();
+                 var probsNormalized = from p in probs select p / total;
+                 return new Multinomial<string>(emits, probsNormalized);
+             }).USeq<string>(20);
+
+            //var program = observations.MarkovModel<string>(start_probability, transition_probability, emission_probability);
+            //var output = program.SampledInference(1, comparer).Support().OrderByDescending(k => k.Probability).ToList();
 
             int x = 10;
         }
@@ -443,51 +523,51 @@ namespace UncertainTests
             return output;
         }
 
-        //public static Uncertain<T[]> MarkovModel<T>(this Uncertain<IEnumerable<T>> observations, Uncertain<T> init, Func<T, Uncertain<T>> transition, Func<T, Uncertain<T>> emission) where T : IEquatable<T>
-        //{
-        //    Func<T, Uncertain<T[]>> RunOne 
+        public static Uncertain<T[]> MarkovModel<T>(this Uncertain<T[]> observations, Uncertain<T> init, Func<T, Uncertain<T>> transition, Func<T, Uncertain<T>> emission) where T : IEquatable<T>
+        {
+            Func<IEnumerable<T>, Uncertain<T[]>> RunOne = obs =>
+            {
+                var initlst = from prior in init
+                              select FunctionalList.Cons(prior, FunctionalList.Empty<T>());
 
-        //    return from obs in observations
-        //           select
-        //    {
-        //        var initlst = from prior in init
-        //                      select FunctionalList.Cons(prior, FunctionalList.Empty<T>());
+                return obs.Aggregate<T, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
+                    initlst,
+                    (list, obs_i) =>
+                    {
+                        var program = from head in list
+                                      let state = head.Head
+                                      from next in transition(state)
+                                      from emit in emission(next)
+                                      where obs_i.Equals(emit)
+                                      select FunctionalList.Cons(next, head);
+                        return program;
+                    },
+                    uncertainlst =>
+                    {
+                        return from sample in uncertainlst
+                               select sample.Reverse().Skip(1) /* skip prior */ .ToArray();
+                    });
+            };
 
-        //        return obs.Aggregate<T, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
-        //            initlst,
-        //            (list, obs_i) =>
-        //            {
-        //                var program = from head in list
-        //                              let state = head.Head
-        //                              from next in transition(state)
-        //                              from emit in emission(next)
-        //                              where obs_i.Equals(emit)
-        //                              select FunctionalList.Cons(next, head);
-        //                return program;
-        //            },
-        //            uncertainlst =>
-        //            {
-        //                return from sample in uncertainlst
-        //                       select sample.Reverse().ToArray();
-        //            });
-        //        });
+            return from obs in observations
+                   from result in RunOne(obs)
+                   select result;
 
-        //    return foo;
-        //    //Uncertain < T[] > output = observations.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
-        //    //    FunctionalList.Empty<T>(),
-        //    //    (i, j) =>
-        //    //    {
-        //    //        return from lst in i
-        //    //               from sample in j
-        //    //               select FunctionalList.Cons(sample, lst);
-        //    //    },
-        //    //    uncertainlst =>
-        //    //    {
-        //    //        return from sample in uncertainlst
-        //    //               select sample.Reverse().ToArray();
-        //    //    });
-        //    //return output;
-        //}
+            //Uncertain < T[] > output = observations.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
+            //    FunctionalList.Empty<T>(),
+            //    (i, j) =>
+            //    {
+            //        return from lst in i
+            //               from sample in j
+            //               select FunctionalList.Cons(sample, lst);
+            //    },
+            //    uncertainlst =>
+            //    {
+            //        return from sample in uncertainlst
+            //               select sample.Reverse().ToArray();
+            //    });
+            //return output;
+        }
 
         public static Uncertain<R[]> USeq2<T, R>(this IEnumerable<Uncertain<T>> source, Func<T[], R[]> selector)
         {
