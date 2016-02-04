@@ -231,7 +231,6 @@ namespace Microsoft.Research.Uncertain
 
         private IEnumerable<Weighted<T1>> GetEnumerator<T1>(Uncertain<T1> uncertain)
         {
-            /// TODO: I am still building a caching mechanism!
             var regenFrom = 0;
 
             RandomPrimitive sampled = null;
