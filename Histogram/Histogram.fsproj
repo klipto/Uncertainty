@@ -44,7 +44,6 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="HistogramUncertain.fs" />
   </ItemGroup>
   <ItemGroup>
