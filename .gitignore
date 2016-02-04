@@ -4,3 +4,11 @@
 *.resfiles
 UncertainT/obj/
 UncertainTests/obj
+
+Uncertain/bin/
+Uncertain/obj/
+UncertainTests/bin/
+Willis/bin/
+Willis/obj/
+
+.vs
