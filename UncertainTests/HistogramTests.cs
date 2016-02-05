@@ -54,5 +54,20 @@ namespace UncertainTests
             Assert.AreEqual(0.6, doubledHist.Score(partial<double>.NewTop(4.0)), 0.01);
             Assert.AreEqual(0.4, doubledHist.Score(partial<double>.NewTop(6.0)), 0.01);
         }
+
+        [TestMethod]
+        public void Test_Sampled_Flattening()
+        {
+            int[] values = { 10, 11, 15 };
+            double[] probs = { 0.7, 0.2, 0.1 };
+            var mult = new Multinomial<int>(values, probs);
+            var hist = Histogram.flattenSample(mult, 1000);
+
+            // The resulting values should now be doubled.
+            Assert.AreEqual(0.0, hist.Score(partial<int>.Other), 0.1);
+            Assert.AreEqual(0.7, hist.Score(partial<int>.NewTop(10)), 0.1);
+            Assert.AreEqual(0.2, hist.Score(partial<int>.NewTop(11)), 0.1);
+            Assert.AreEqual(0.1, hist.Score(partial<int>.NewTop(15)), 0.1);
+        }
     }
 }
