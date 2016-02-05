@@ -21,11 +21,7 @@ module Lifting =
     type 'a unc = Uncertain<'a option>
 
     let lift (f: 'a -> 'b) (ua: 'a unc) : 'b unc =
-        query {
-            for a in ua do
-            let b = f a in
-            select b
-        }
+        ua.Select(fun a -> Option.map f a)
 
 
 // An Uncertain<T> implementaiton wrapping a "top-K-plus-other" representation.
