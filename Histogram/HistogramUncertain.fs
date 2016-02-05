@@ -16,6 +16,18 @@ module Histogram =
         | _ -> None
 
 
+// Our combinator library.
+module Lifting =
+    type 'a unc = Uncertain<'a option>
+
+    let lift (f: 'a -> 'b) (ua: 'a unc) : 'b unc =
+        query {
+            for a in ua do
+            let b = f a in
+            select b
+        }
+
+
 // An Uncertain<T> implementaiton wrapping a "top-K-plus-other" representation.
 type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
     inherit RandomPrimitive< 'a option >()
