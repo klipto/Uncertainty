@@ -1,6 +1,12 @@
 ﻿namespace Microsoft.Research.Uncertain.Histogram
 open Microsoft.Research.Uncertain
 
+module Histogram =
+    let rec getScore entries value =
+        match entries with
+        | (v, p)::es -> (if v = value then p else getScore es value)
+        | _ -> 0.0
+
 type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
     inherit RandomPrimitive<'a>()
 
@@ -29,15 +35,11 @@ type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
     override this.StructuralEquals other =
         match other with
         | :? HistogramUncertain<'a> as hu ->
-            Seq.fold (&&) true (seq {
-                for (lv, lp), (rv, rp) in Seq.zip (entries) (hu.getEntries ()) ->
-                lv == rv && lp == rp
-            })
+            entries = hu.getEntries ()  // TODO Not really structural.
         | _ -> false
 
     override this.GetStructuralHash () =
         hash entries
 
     override this.Score value =
-        // TODO
-        0.0
+        Histogram.getScore entries value
