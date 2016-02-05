@@ -1,14 +1,19 @@
 ﻿namespace Microsoft.Research.Uncertain.Histogram
 open Microsoft.Research.Uncertain
 
+// We define our own option type to avoid depending on the entire F# runtime.
+type 'a partial = Top of 'a | Other
+
 // A convenient F# type alias for "partial distributions."
-type 'a unc = Uncertain<'a option>
+type 'a unc = Uncertain<'a partial>
 
 // Our combinator library.
 module public Lifting =
     // Propagate uncertainty through an 'a -> 'b.
     let lift (f: 'a -> 'b) (ua: 'a unc) : 'b unc =
-        ua.Select(fun a -> Option.map f a)
+        ua.Select(fun a -> match a with
+                           | Top v -> Top (f v)
+                           | Other -> Other)
 
 // Experiments with combinators that work well in C# land.
 module public CSLifting =
@@ -20,11 +25,11 @@ module public CSLifting =
 // histogram representation. It is based on the Multinomial primitive from
 // the Uncertain library.
 type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
-    inherit Multinomial< 'a option >(
+    inherit Multinomial< 'a partial >(
         // Values.
         seq {
-            for value, probability in topk -> Some value;
-            yield None
+            for value, probability in topk -> Top value;
+            yield Other
         },
 
         // Probabilities.
@@ -55,8 +60,8 @@ module public Histogram =
         HistogramUncertain(seq {
             for weighted in ua.Support() do
             match weighted.Value with
-            | Some v -> yield v, weighted.Probability
-            | None -> ()
+            | Top v -> yield v, weighted.Probability
+            | Other -> ()
         })
     
     // Like `flatten`, but uses sampling instead of exhaustive enumeration.

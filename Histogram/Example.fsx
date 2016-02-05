@@ -16,5 +16,5 @@ let doubledDist = (Lifting.lift double) someDist
 // Dump the distribution.
 for weighted in doubledDist.Support() do
     match weighted.Value with
-    | Some v -> printfn "%A: %f" v weighted.Probability
-    | None -> printfn "other: %f" weighted.Probability
+    | Top v -> printfn "%A: %f" v weighted.Probability
+    | Other -> printfn "other: %f" weighted.Probability
