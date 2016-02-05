@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using Microsoft.Research.Uncertain;
 using Microsoft.Research.Uncertain.Histogram;
+using System.Collections.Generic;
 
 namespace UncertainTests
 {
@@ -12,9 +13,14 @@ namespace UncertainTests
         [TestMethod]
         public void Test_Flattening()
         {
-            var someDist = new Multinomial<int>(1, 2, 2, 3, 3, 3, 4);
-
+            var someDist = new Multinomial<int>(1, 2, 2, 3);
             var someHist = Histogram.flatten(someDist);
+
+            // Check the resulting support.
+            Assert.AreEqual(someHist.Score(partial<int>.Other), 0.0);
+            Assert.AreEqual(someHist.Score(partial<int>.NewTop(1)), 0.25);
+            Assert.AreEqual(someHist.Score(partial<int>.NewTop(2)), 0.5);
+            Assert.AreEqual(someHist.Score(partial<int>.NewTop(3)), 0.25);
         }
 
         public static double doubler(double x) {
