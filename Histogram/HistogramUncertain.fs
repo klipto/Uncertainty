@@ -36,8 +36,7 @@ type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
     member this.otherProbability () =
         let allProbs = seq { for value, probability in entries -> probability } in
         let totalProb = Seq.fold (+) 0.0 allProbs in
-        let topkProb = 0.0 in
-        1.0 - topkProb
+        1.0 - totalProb
     
     member this.getEntries () = entries
     
