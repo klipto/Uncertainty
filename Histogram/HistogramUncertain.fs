@@ -17,7 +17,7 @@ module Histogram =
 
 
 // Our combinator library.
-module Lifting =
+module public Lifting =
     type 'a unc = Uncertain<'a option>
 
     let lift (f: 'a -> 'b) (ua: 'a unc) : 'b unc =
