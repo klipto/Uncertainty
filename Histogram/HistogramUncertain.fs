@@ -22,17 +22,14 @@ type HistogramUncertain<'a> (topk: seq< 'a * float >) =
         raise (System.Exception("infinite support"))
     
     override this.GetSample () =
-        // TODO actually sample
-        let value, probability = entries.Head in
-        value
+        raise (System.Exception("unimplemented")) // TODO
 
     override this.StructuralEquals other =
-        // TODO
-        true
+        false  // TODO
 
     override this.GetStructuralHash () =
-        // TODO
-        0
+        0  // TODO
+        // hash entries
 
     override this.Score value =
         // TODO
