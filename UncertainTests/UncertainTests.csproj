@@ -58,6 +58,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="HistogramTests.cs" />
     <Compile Include="LargeModel.cs">
       <DependentUpon>LargeModel.tt</DependentUpon>
       <AutoGen>True</AutoGen>
@@ -74,6 +75,10 @@
     <Compile Include="MCMCTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Histogram\Histogram.fsproj">
+      <Project>{e0c3ea2c-0e0b-4cc5-b364-c5faf9922334}</Project>
+      <Name>Histogram</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Uncertain\Uncertain.csproj">
       <Project>{62dbb61c-a633-448d-80bb-37b407e0b3ac}</Project>
       <Name>Uncertain</Name>
