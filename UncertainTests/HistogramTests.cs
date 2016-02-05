@@ -17,10 +17,27 @@ namespace UncertainTests
             var someHist = Histogram.flatten(someDist);
         }
 
+        public static double doubler(double x) {
+            return 2.0 * x;
+        }
+
         [TestMethod]
         public void Test_Lifting()
         {
-            var liftedDouble = CSLifting.lift(x => 2 * x);
+            // You can lift C# lambdas.
+            var liftedLambda = CSLifting.lift<double, double>(x => 2.0 * x);
+
+            // You can also, apparently, pass static methods in the same way.
+            // C#'s type inference is evidently not strong enough to figure
+            // out the Func<> type parameters, alas, so we need type
+            // annotations in both cases.
+            var liftedStaticMethod = CSLifting.lift<double, double>(doubler);
+
+            // Apply a lifted function to a distribution and flatten it back to
+            // a histogram.
+            var hist = Histogram.flatten(new Multinomial<double>(2.0, 2.0, 4.0));
+            var doubledDist = liftedLambda(hist);
+            var doubledHist = Histogram.reflatten(doubledDist);
         }
     }
 }

@@ -17,9 +17,9 @@ module public Lifting =
 
 // Experiments with combinators that work well in C# land.
 module public CSLifting =
-    let lift (f: System.Func<'a, 'b>): System.Func<'a unc, 'b unc> =
-        let g = Lifting.lift (fun (a: 'a) -> f.Invoke a)
-        System.Func<'a unc, 'b unc> g
+    let lift (f: System.Func<'S, 'T>): System.Func<'S unc, 'T unc> =
+        let g = Lifting.lift (fun (a: 'S) -> f.Invoke a)
+        System.Func<'S unc, 'T unc> g
 
 // A (partial) Uncertain<T> implementaiton wrapping a "top-K-plus-other"
 // histogram representation. It is based on the Multinomial primitive from
