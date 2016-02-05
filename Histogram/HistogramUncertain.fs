@@ -1,5 +1,4 @@
 ﻿namespace Microsoft.Research.Uncertain.Histogram
-
 open Microsoft.Research.Uncertain
 
 type HistogramUncertain<'a>() =
