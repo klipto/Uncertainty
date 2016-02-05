@@ -17,9 +17,16 @@ module public Lifting =
 
 // Experiments with combinators that work well in C# land.
 module public CSLifting =
+    // Convert from a C# function to an F# function.
+    let internal fromfunc (f: System.Func<'a, 'b>): 'a -> 'b =
+        fun x -> f.Invoke x
+
+    // Convert from an F# function to a C# function.
+    let internal tofunc (f: 'a -> 'b) =
+        System.Func<'a, 'b> f
+
     let lift (f: System.Func<'S, 'T>): System.Func<'S unc, 'T unc> =
-        let g = Lifting.lift (fun (a: 'S) -> f.Invoke a)
-        System.Func<'S unc, 'T unc> g
+        tofunc (Lifting.lift (fromfunc f))
 
 // A (partial) Uncertain<T> implementaiton wrapping a "top-K-plus-other"
 // histogram representation. It is based on the Multinomial primitive from
