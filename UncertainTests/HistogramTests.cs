@@ -13,14 +13,16 @@ namespace UncertainTests
         [TestMethod]
         public void Test_Flattening()
         {
-            var someDist = new Multinomial<int>(1, 2, 2, 3);
+            int[] values = { 1, 2, 3 };
+            double[] probs = { 0.25, 0.5, 0.25 };
+            var someDist = new Multinomial<int>(values, probs);
             var someHist = Histogram.flatten(someDist);
 
             // Check the resulting support.
-            Assert.AreEqual(0.0, someHist.Score(partial<int>.Other));
-            Assert.AreEqual(0.25, someHist.Score(partial<int>.NewTop(1)));
-            Assert.AreEqual(0.5, someHist.Score(partial<int>.NewTop(2)));
-            Assert.AreEqual(0.25, someHist.Score(partial<int>.NewTop(3)));
+            Assert.AreEqual(0.0, someHist.Score(partial<int>.Other), 0.01);
+            Assert.AreEqual(0.25, someHist.Score(partial<int>.NewTop(1)), 0.01);
+            Assert.AreEqual(0.5, someHist.Score(partial<int>.NewTop(2)), 0.01);
+            Assert.AreEqual(0.25, someHist.Score(partial<int>.NewTop(3)), 0.01);
         }
 
         public static double doubler(double x) {
@@ -41,14 +43,16 @@ namespace UncertainTests
 
             // Apply a lifted function to a distribution and flatten it back to
             // a histogram.
-            var hist = Histogram.flatten(new Multinomial<double>(2.0, 2.0, 4.0));
+            double[] values = { 2.0, 3.0 };
+            double[] probs = { 0.6, 0.4 };
+            var hist = Histogram.flatten(new Multinomial<double>(values, probs));
             var doubledDist = liftedLambda(hist);
             var doubledHist = Histogram.reflatten(doubledDist);
 
             // The resulting values should now be doubled.
             Assert.AreEqual(0.0, doubledHist.Score(partial<double>.Other), 0.01);
-            Assert.AreEqual(0.6667, doubledHist.Score(partial<double>.NewTop(4.0)), 0.01);
-            Assert.AreEqual(0.3333, doubledHist.Score(partial<double>.NewTop(8.0)), 0.01);
+            Assert.AreEqual(0.6, doubledHist.Score(partial<double>.NewTop(4.0)), 0.01);
+            Assert.AreEqual(0.4, doubledHist.Score(partial<double>.NewTop(6.0)), 0.01);
         }
     }
 }
