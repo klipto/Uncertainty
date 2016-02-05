@@ -30,3 +30,31 @@ type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
             yield 1.0 - (Seq.fold (+) 0.0 probs)
         }
     )
+
+// Utilities for constructing histograms.
+module public Histogram =
+    // "Flatten" an arbitrary Uncertain<T> using exhaustive enumeration.
+    // There is no "other" part in the resulting histogram.
+    let flatten (ua: Uncertain<'a>) : HistogramUncertain<'a> =
+        HistogramUncertain(seq {
+            for weighted in ua.Support() ->
+            weighted.Value, weighted.Probability
+        })
+
+    // A similar flattening for arbitrary Uncertain<T>s where T is an
+    // option. This is useful when we construct more complex distritbuions
+    // out of histograms and want to "re-flatten" them back to histograms
+    // for a compact representation. Also uses exhaustive enumeration.
+    let reflatten (ua: 'a unc) : HistogramUncertain<'a> =
+        HistogramUncertain(seq {
+            for weighted in ua.Support() do
+            match weighted.Value with
+            | Some v -> yield v, weighted.Probability
+            | None -> ()
+        })
+    
+    // Like `flatten`, but uses sampling instead of exhaustive enumeration.
+    open Microsoft.Research.Uncertain.Inference
+    let flattenSample (ua: Uncertain<'a>) samples: HistogramUncertain<'a> =
+        let sampled = ua.SampledInference(samples)
+        flatten(sampled)
