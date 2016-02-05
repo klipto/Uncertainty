@@ -10,13 +10,15 @@ module Histogram =
 
     let rec sampleIndex index entries =
         match entries with
-        | (v, p)::es -> (if index <= p then v else sampleIndex (index - p) entries)
-        | _ -> raise (System.Exception("I don't know how to sample from the domain yet"))
+        | (v, p)::es -> (if index <= p
+                         then Some v
+                         else sampleIndex (index - p) entries)
+        | _ -> None
 
 
 // An Uncertain<T> implementaiton wrapping a "top-K-plus-other" representation.
 type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
-    inherit RandomPrimitive<'a>()
+    inherit RandomPrimitive< Option<'a> >()
 
     // A list of object/probability pairs.
     let entries =
@@ -51,4 +53,6 @@ type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
         hash entries
 
     override this.Score value =
-        Histogram.getScore entries value
+        match value with
+        | Some v -> Histogram.getScore entries v
+        | None -> 0.0
