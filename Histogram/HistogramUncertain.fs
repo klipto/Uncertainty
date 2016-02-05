@@ -38,7 +38,6 @@ type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
         let probs = seq {
             for value, probability in topk -> probability
         }
-        let totalProb = 0.0 in
         seq {
             yield! probs;
             yield 1.0 - (Seq.fold (+) 0.0 probs)
