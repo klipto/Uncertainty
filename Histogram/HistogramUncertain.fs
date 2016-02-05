@@ -1,7 +1,7 @@
 ﻿namespace Microsoft.Research.Uncertain.Histogram
 open Microsoft.Research.Uncertain
 
-type HistogramUncertain<'a> (topk: seq< 'a * float >) =
+type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
     inherit RandomPrimitive<'a>()
 
     // A list of object/probability pairs.
@@ -15,6 +15,8 @@ type HistogramUncertain<'a> (topk: seq< 'a * float >) =
         let topkProb = 0.0 in
         1.0 - topkProb
     
+    member this.getEntries () = entries
+    
 
     // The Uncertain<T> interface.
 
@@ -25,11 +27,16 @@ type HistogramUncertain<'a> (topk: seq< 'a * float >) =
         raise (System.Exception("unimplemented")) // TODO
 
     override this.StructuralEquals other =
-        false  // TODO
+        match other with
+        | :? HistogramUncertain<'a> as hu ->
+            Seq.fold (&&) true (seq {
+                for (lv, lp), (rv, rp) in Seq.zip (entries) (hu.getEntries ()) ->
+                lv == rv && lp == rp
+            })
+        | _ -> false
 
     override this.GetStructuralHash () =
-        0  // TODO
-        // hash entries
+        hash entries
 
     override this.Score value =
         // TODO
