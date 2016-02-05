@@ -73,6 +73,11 @@ module public Histogram =
     
     // Like `flatten`, but uses sampling instead of exhaustive enumeration.
     open Microsoft.Research.Uncertain.Inference
-    let flattenSample (ua: Uncertain<'a>) samples: HistogramUncertain<'a> =
+    let flattenSample (ua: Uncertain<'a>) limit samples: HistogramUncertain<'a> =
         let sampled = ua.SampledInference(samples)
-        flatten(sampled)
+        let options = Seq.sortBy (fun (v, p) -> p) (seq {
+            for weighted in ua.Support() ->
+            weighted.Value, weighted.Probability
+        })
+        let truncated = Seq.take limit options
+        HistogramUncertain(truncated)

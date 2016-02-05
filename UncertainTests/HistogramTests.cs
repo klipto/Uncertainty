@@ -61,13 +61,13 @@ namespace UncertainTests
             int[] values = { 10, 11, 15 };
             double[] probs = { 0.7, 0.2, 0.1 };
             var mult = new Multinomial<int>(values, probs);
-            var hist = Histogram.flattenSample(mult, 1000);
+            var hist = Histogram.flattenSample(mult, 2, 1000);
 
-            // The resulting values should now be doubled.
-            Assert.AreEqual(0.0, hist.Score(partial<int>.Other), 0.1);
+            // After sampling with a limit of 2, we should now have two "top" entries
+            // and a third standing in for the low-probability remainder.
+            Assert.AreEqual(0.1, hist.Score(partial<int>.Other), 0.1);
             Assert.AreEqual(0.7, hist.Score(partial<int>.NewTop(10)), 0.1);
             Assert.AreEqual(0.2, hist.Score(partial<int>.NewTop(11)), 0.1);
-            Assert.AreEqual(0.1, hist.Score(partial<int>.NewTop(15)), 0.1);
         }
     }
 }
