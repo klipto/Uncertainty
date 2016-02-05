@@ -16,16 +16,20 @@ module Histogram =
         | _ -> None
 
 
+// A convenient F# type alias for "partial distributions."
+type 'a unc = Uncertain<'a option>
+
+
 // Our combinator library.
 module public Lifting =
-    type 'a unc = Uncertain<'a option>
-
     // Propagate uncertainty through an 'a -> 'b.
     let lift (f: 'a -> 'b) (ua: 'a unc) : 'b unc =
         ua.Select(fun a -> Option.map f a)
 
 
-// An Uncertain<T> implementaiton wrapping a "top-K-plus-other" representation.
+// A (partial) Uncertain<T> implementaiton wrapping a "top-K-plus-other"
+// histogram representation. It is based on the Multinomial primitive from
+// the Uncertain library.
 type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
     inherit Multinomial< 'a option >(
         // Values.
