@@ -18,7 +18,7 @@ module Histogram =
 
 // An Uncertain<T> implementaiton wrapping a "top-K-plus-other" representation.
 type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
-    inherit RandomPrimitive< Option<'a> >()
+    inherit RandomPrimitive< 'a option >()
 
     // A list of object/probability pairs.
     let entries =
@@ -37,7 +37,11 @@ type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
     // The Uncertain<T> interface.
 
     override this.GetSupport () =
-        raise (System.Exception("infinite support"))
+        seq {
+            for value, probability in entries
+            -> Weighted(Some value, probability);
+            yield Weighted(None, this.otherProbability())
+        }
     
     override this.GetSample () =
         let rnd = System.Random()
