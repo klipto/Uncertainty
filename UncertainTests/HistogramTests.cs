@@ -17,10 +17,10 @@ namespace UncertainTests
             var someHist = Histogram.flatten(someDist);
 
             // Check the resulting support.
-            Assert.AreEqual(someHist.Score(partial<int>.Other), 0.0);
-            Assert.AreEqual(someHist.Score(partial<int>.NewTop(1)), 0.25);
-            Assert.AreEqual(someHist.Score(partial<int>.NewTop(2)), 0.5);
-            Assert.AreEqual(someHist.Score(partial<int>.NewTop(3)), 0.25);
+            Assert.AreEqual(0.0, someHist.Score(partial<int>.Other));
+            Assert.AreEqual(0.25, someHist.Score(partial<int>.NewTop(1)));
+            Assert.AreEqual(0.5, someHist.Score(partial<int>.NewTop(2)));
+            Assert.AreEqual(0.25, someHist.Score(partial<int>.NewTop(3)));
         }
 
         public static double doubler(double x) {
@@ -44,6 +44,11 @@ namespace UncertainTests
             var hist = Histogram.flatten(new Multinomial<double>(2.0, 2.0, 4.0));
             var doubledDist = liftedLambda(hist);
             var doubledHist = Histogram.reflatten(doubledDist);
+
+            // The resulting values should now be doubled.
+            Assert.AreEqual(0.0, doubledHist.Score(partial<double>.Other), 0.01);
+            Assert.AreEqual(0.6667, doubledHist.Score(partial<double>.NewTop(4.0)), 0.01);
+            Assert.AreEqual(0.3333, doubledHist.Score(partial<double>.NewTop(8.0)), 0.01);
         }
     }
 }
