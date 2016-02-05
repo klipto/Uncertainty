@@ -7,6 +7,11 @@ module Histogram =
         | (v, p)::es -> (if v = value then p else getScore es value)
         | _ -> 0.0
 
+    let rec sampleIndex index entries =
+        match entries with
+        | (v, p)::es -> (if index <= p then v else sampleIndex (index - p) entries)
+        | _ -> raise (System.Exception("I don't know how to sample from the domain yet"))
+
 type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
     inherit RandomPrimitive<'a>()
 
@@ -30,7 +35,8 @@ type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
         raise (System.Exception("infinite support"))
     
     override this.GetSample () =
-        raise (System.Exception("unimplemented")) // TODO
+        let rnd = System.Random()
+        Histogram.sampleIndex (rnd.NextDouble()) entries
 
     override this.StructuralEquals other =
         match other with
