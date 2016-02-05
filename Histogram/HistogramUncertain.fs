@@ -1,6 +1,7 @@
 ﻿namespace Microsoft.Research.Uncertain.Histogram
 open Microsoft.Research.Uncertain
 
+// Functional utilities for implementing HistogramUncertain.
 module Histogram =
     let rec getScore entries value =
         match entries with
@@ -12,6 +13,8 @@ module Histogram =
         | (v, p)::es -> (if index <= p then v else sampleIndex (index - p) entries)
         | _ -> raise (System.Exception("I don't know how to sample from the domain yet"))
 
+
+// An Uncertain<T> implementaiton wrapping a "top-K-plus-other" representation.
 type HistogramUncertain<'a> when 'a : equality (topk: seq< 'a * float >) =
     inherit RandomPrimitive<'a>()
 
