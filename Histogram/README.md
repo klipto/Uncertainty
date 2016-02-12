@@ -37,6 +37,8 @@ The three flattening operations are:
 Lifting Combinators
 -------------------
 
-The `Lifting` module contains combinators that transform uncertainty-unaware functions into uncertainty-aware equivalents.
+The `Lifting` module contains combinators that transform uncertainty-unaware functions into uncertainty-aware equivalents. The only one I've implemented so far is the simplest possible combinator, called `lift`. If you have a function of type `'a -> 'b`, this combinator will give you a new function with the type `'a unc -> 'b unc`. (It's like the monadic `map` operator.) The idea is that you can then provide the new, transformed with a `HistogramUncertain<T>` and get a new distribution out. Calling `reflatten` on that output gives you a new `HistogramUncertain<T>`.
 
-There's also a companion module, called `CSLifting`, that exposes the same combinators in a way that C# programs can use conveniently. See `UncertainTests/HistogramTests.cs` for an example in C#.
+(The `lift` operator is implemented using standard Uncertain\<T\> components. Its implementation might be instructive to read.)
+
+There's also a companion module, called `CSLifting`, that exposes the same combinators in a way that C# programs can use conveniently. See `UncertainTests/HistogramTests.cs` for an example that uses the `lift` combinator in C#.
