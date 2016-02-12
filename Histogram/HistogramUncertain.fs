@@ -70,7 +70,7 @@ module public Histogram =
             | Top v -> yield v, weighted.Probability
             | Other -> ()
         })
-    
+
     // Like `flatten`, but uses sampling instead of exhaustive enumeration.
     open Microsoft.Research.Uncertain.Inference
     let flattenSample (ua: Uncertain<'a>) limit samples: HistogramUncertain<'a> =
