@@ -33,14 +33,14 @@ using System.Collections.Generic;
 
 namespace Microsoft.Research.Uncertain
 {
-    internal class ForwardSampler<T> : IUncertainVisitor, ISampler<T>
+    public class ForwardSampler<T> : IUncertainVisitor, ISampler<T>
     {
         internal object sample;
         protected readonly Uncertain<T> source;
         protected int generation;
         private IDictionary<object, Tuple<int, object>> cache;
 
-        internal ForwardSampler(Uncertain<T> source)
+        public ForwardSampler(Uncertain<T> source)
         {
             this.source = source;
             this.generation = 1;

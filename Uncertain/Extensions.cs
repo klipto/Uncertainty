@@ -64,12 +64,28 @@ namespace Microsoft.Research.Uncertain
             double Range = b - a;
             return NextRandom() * Range + a;
         }
+        public static T ExpectedValue<T>(this Uncertain<T> source, int SampleSize = EXPECTED_VALUE_SAMPLE_SIZE)
+        {
+            var sampler = Sampler.Create(source);
+            var data = sampler.Take(SampleSize).ToList();
+
+            // http://en.wikipedia.org/wiki/Weighted_arithmetic_mean
+            var N = (double)data.Count();
+            var WeightSum = (from k in data select k.Probability).Sum();
+            var SumOfSquares = data.Select(x => Math.Pow(x.Probability, 2)).Sum();
+
+            // weighted mean
+            var Xbar = data.Select(x => (dynamic)x.Value * x.Probability).Aggregate((a,b) => a + b) / WeightSum;
+            return (T)Xbar;
+        }
+
 
         public static MeanAndConfidenceInterval ExpectedValueWithConfidence<T>(this Uncertain<T> source, int SampleSize = EXPECTED_VALUE_SAMPLE_SIZE)
         //  where T : IConvertible
         {
             const double CI_AT_95 = 1.96;
             var sampler = Sampler.Create(source);
+
             var data = (from k in sampler.Take(SampleSize)
                         select new Weighted<double>()
                         {

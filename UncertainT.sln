@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uncertain", "Uncertain\Unce
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Willis", "Willis\Willis.csproj", "{F06180FE-AB94-4607-BBA3-CFD6768064A5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GPSWalking", "GPSWalking\GPSWalking.csproj", "{87F338DA-79D3-4BDB-BD91-50D46756B374}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{F06180FE-AB94-4607-BBA3-CFD6768064A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F06180FE-AB94-4607-BBA3-CFD6768064A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F06180FE-AB94-4607-BBA3-CFD6768064A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87F338DA-79D3-4BDB-BD91-50D46756B374}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87F338DA-79D3-4BDB-BD91-50D46756B374}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87F338DA-79D3-4BDB-BD91-50D46756B374}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87F338DA-79D3-4BDB-BD91-50D46756B374}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
