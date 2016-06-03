@@ -141,9 +141,17 @@ namespace Microsoft.Research.Uncertain
                 int InitSampleSize = INITIAL_SAMPLE_SIZE,
                 int SampleSizeStep = SAMPLE_SIZE_STEP)
         {
-            // Initial sample size
             int num_samples;
+            return source.Pr(out num_samples, Prob, Alpha, Epsilon, MaxSampleSize, InitSampleSize, SampleSizeStep);
+        }
 
+        public static bool Pr(this Uncertain<bool> source, out int num_samples, double Prob = 0.5,
+                double Alpha = 0.05, double Epsilon = 0.03,
+                int MaxSampleSize = MAX_SAMPLE_SIZE,
+                int InitSampleSize = INITIAL_SAMPLE_SIZE,
+                int SampleSizeStep = SAMPLE_SIZE_STEP)
+
+        {
             // The hypotheses being compared
             double H_0 = Prob - Epsilon;  // H_0 : p <= prob - epsilon
             double H_1 = Prob + Epsilon;  // H_1 : p >= prob + epsilon
@@ -257,8 +265,7 @@ namespace Microsoft.Research.Uncertain.Inference
 {
     public static class Extensions
     {
-
-        internal static Uncertain<T> RunInference<T>(IList<Weighted<T>> data, IEqualityComparer<T> comparer = null)
+        public static Uncertain<T> RunInference<T>(IList<Weighted<T>> data, IEqualityComparer<T> comparer = null)
         {
             if (comparer == null)
                 comparer = EqualityComparer<T>.Default;

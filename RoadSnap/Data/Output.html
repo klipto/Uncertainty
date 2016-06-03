@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <style type="text/css">
+      html { height: 100% }
+      body { height: 100%; margin: 0; padding: 0 }
+      #map_canvas { height: 100% }
+    </style>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script type="text/javascript">
+      var map;
+      var markers = [];
+
+      function initialize() {
+        var mapOptions = {
+          center: new google.maps.LatLng(47.621713, -122.132420),
+          zoom: 17,
+          mapTypeId: google.maps.MapTypeId.ROADMAP
+        };
+        map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+        // var sw = new google.maps.LatLng(47.640407, -122.143579);
+        // var ne = new google.maps.LatLng(47.646392, -122.134127);
+        // var bnds = new google.maps.LatLngBounds(sw, ne);
+        // map.fitBounds(bnds);
+
+        // Parse the data
+        if (typeof(OutputData) === "undefined")
+          alert("Output.js not found. You need to run the RoadSnap application first!");
+        else
+          addPoints(OutputData);
+      }
+
+      function makeCenterMarker(colour) {
+        var marker = {
+          strokeColor: colour,
+          strokeOpacity: 1,
+          strokeWeight: 1,
+          fillColor: colour,
+          fillOpacity: 1,
+          map: map
+        };
+        return marker;
+      }
+      function makeRadiusMarker(colour) {
+        var marker = {
+          strokeColor: colour,
+          strokeOpacity: 0.3,
+          strokeWeight: 1,
+          fillColor: colour,
+          fillOpacity: 0,
+          map: map
+        };
+        return marker;
+      }
+
+      function attachEvent(obj) {
+        google.maps.event.addListener(obj, 'click', function() {
+          alert(obj.title);
+        });
+      }
+
+      function addPoints(data) {
+        // Reset any existing markers
+        jQuery.each(markers, function(idx, val) {
+          val.setMap(null);
+        });
+        markers = [];
+
+        var centerMarkerNaive = makeCenterMarker("#0000FF");
+        var radiusMarkerNaive = makeRadiusMarker("#0000FF");
+        var centerMarkerNew   = makeCenterMarker("#FF0000");
+        var radiusMarkerNew   = makeRadiusMarker("#FF0000");
+        var centerMarkerClose = makeCenterMarker("#00FF00");
+        var roadLine = {
+          strokeColor: '#00FFFF',
+          strokeOpacity: 0.8,
+          strokeWeight: 6,
+          geodesic: true,
+          map: map
+        };
+
+        var bounds = new google.maps.LatLngBounds();
+        jQuery.each(data, function(idx, val) {
+          var this_markers = [];
+
+          // val = [NaiveLat, NaiveLng, NaiveAcc, NewLat, NewLng, NewAcc]
+
+          var pt = new google.maps.LatLng(val[0], val[1])
+          centerMarkerNaive.center = pt;
+          centerMarkerNaive.radius = 2.0;
+          centerMarkerNaive.title = "GPS: " + idx;
+          var circle = new google.maps.Circle(centerMarkerNaive);
+          attachEvent(circle);
+          this_markers.push(circle);
+          bounds.extend(pt);
+
+          // radiusMarkerNaive.center = pt;
+          // radiusMarkerNaive.radius = val[2];
+          // radiusMarkerNaive.title = "GPS: " + idx;
+          // var circle = new google.maps.Circle(radiusMarkerNaive);
+          // attachEvent(circle);
+          // this_markers.push(circle);
+
+          var pt = new google.maps.LatLng(val[3], val[4])
+          centerMarkerNew.center = pt;
+          centerMarkerNew.radius = 2.0;
+          centerMarkerNew.title = "Snap: " + idx;
+          var circle = new google.maps.Circle(centerMarkerNew);
+          attachEvent(circle);
+          this_markers.push(circle);
+          bounds.extend(pt);
+
+          // radiusMarkerNew.center = pt;
+          // radiusMarkerNew.radius = val[5];
+          // radiusMarkerNew.title = "Snap: " + idx;
+          // var circle = new google.maps.Circle(radiusMarkerNew);
+          // attachEvent(circle);
+          // this_markers.push(circle);
+
+          // var pt = new google.maps.LatLng(val[6], val[7])
+          // centerMarkerClose.center = pt;
+          // centerMarkerClose.radius = 2.0;
+          // centerMarkerClose.title = "Closest: " + idx + " (road " + val[8] + ")";
+          // var circle = new google.maps.Circle(centerMarkerClose);
+          // attachEvent(circle);
+          // this_markers.push(circle);
+          // bounds.extend(pt);
+
+          markers.push(this_markers);
+
+        });
+
+        jQuery.each(Roads, function(idx, val) {
+          var pts = val.map(function(v) { return new google.maps.LatLng(v[0], v[1])});
+          roadLine.path = pts;
+          roadLine.title = "Road " + idx;
+          var line = new google.maps.Polyline(roadLine);
+          attachEvent(line);
+        });
+
+        // map.fitBounds(bounds);
+      }
+    </script>
+    <script src="Output.js"></script>
+  </head>
+  <body onload="initialize()">
+    <div id="map_canvas" style="width:100%; height:100%"></div>
+  </body>
+</html>
