@@ -92,30 +92,58 @@ namespace Microsoft.Research.Uncertain
         }
     }
 
-    //internal class SingleSampler : IUncertainVisitor
-    //{
-    //    internal object Sample { get; private set; }
+    internal class ObjectArrayComparer : IEqualityComparer<object[]>
+    {
+        public bool Equals(object[] x, object[] y)
+        {
+            if (x.Length != y.Length)
+                return false;
 
-    //    public void Visit<T>(Where<T> where)
-    //    {
-    //        throw new NotImplementedException();
-    //    }
+            for(int i = 0; i < x.Length; i++)
+            {
+                if (!x[i].Equals(y[i]))
+                    return false;
+            }
 
-    //    public void Visit<T>(RandomPrimitive<T> erp)
-    //    {
-    //        this.Sample = erp.Sample(-1);
-    //    }
+            return true;
+        }
 
-    //    public void Visit<TSource, TResult>(Select<TSource, TResult> select)
-    //    {
-    //        throw new NotImplementedException();
-    //    }
+        public int GetHashCode(object[] obj)
+        {
+            var hashcode = obj.Length;
+            foreach (var e in obj)
+            {
+                var a = e.GetHashCode();
+                hashcode ^= a;
+            }
+            return hashcode;
+        }
+    }
 
-    //    public void Visit<TSource, TCollection, TResult>(SelectMany<TSource, TCollection, TResult> selectmany)
-    //    {
-    //        throw new NotImplementedException();
-    //    }
-    //}
+    internal class SingleSampler : IUncertainVisitor
+    {
+        internal object Sample { get; private set; }
+
+        public void Visit<T>(Where<T> where)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit<T>(RandomPrimitive<T> erp)
+        {
+            this.Sample = erp.Sample(-1);
+        }
+
+        public void Visit<TSource, TResult>(Select<TSource, TResult> select)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit<TSource, TCollection, TResult>(SelectMany<TSource, TCollection, TResult> selectmany)
+        {
+            throw new NotImplementedException();
+        }
+    }
 
     public class MarkovChainMonteCarloSampler<T> : IUncertainVisitor, ISampler<T>
     {
@@ -124,7 +152,7 @@ namespace Microsoft.Research.Uncertain
         private object sample;
         protected int generation;
         private Address stack;
-        private readonly IDictionary<IList<TraceEntry>, int> cache;
+        private readonly IDictionary<object[], int> cache;
 
         public MarkovChainMonteCarloSampler(Uncertain<T> source)
         {
@@ -134,7 +162,7 @@ namespace Microsoft.Research.Uncertain
             this.trace = new List<TraceEntry>();
             this.oldTrace = new List<TraceEntry>();
 
-            this.cache = new Dictionary<IList<TraceEntry>, int>(new TraceEntryComparer());
+            this.cache = new Dictionary<object[], int>(new ObjectArrayComparer());
         }
 
         private static void Swap<T1>(ref T1 lhs, ref T1 rhs)
@@ -203,11 +231,12 @@ namespace Microsoft.Research.Uncertain
 
         private IEnumerable<Weighted<T1>> GetEnumerator<T1>(Uncertain<T1> uncertain)
         {
+            /// TODO: I am still building a caching mechanism!
             var regenFrom = 0;
 
             RandomPrimitive sampled = null;
             var initstack = this.stack;
-            //var sampler = new SingleSampler();
+            var sampler = new SingleSampler();
 
             do
             {
@@ -216,12 +245,17 @@ namespace Microsoft.Research.Uncertain
                 // Run the program.
                 uncertain.Accept(this);
 
+                //var samples = (from e in this.trace select e.Sample).ToArray();
                 //int count;
-                //if (!this.cache.TryGetValue(this.trace, out count))
+                //if (!this.cache.TryGetValue(samples, out count))
                 //{
                 //    count = 0;
+                //} 
+                //else
+                //{
+                //    count = count;
                 //}
-                //this.cache[this.trace] = count + 1;
+                //this.cache[samples] = count + 1;
 
                 // TODO: should we return 0 mass samples?
                 //       0 IS a reasonable weight if all 
@@ -267,12 +301,15 @@ namespace Microsoft.Research.Uncertain
                     //sampled = dict.Keys.ElementAt(regenFrom);
                     var distinct = oldTrace.Select(e => e.Erp).Distinct().ToList();
                     regenFrom = (int)Math.Floor(Extensions.NextRandom() * distinct.Count);
-                    sampled = distinct[regenFrom];
-
+                    sampled = distinct[regenFrom];                    
                     // force regeneration of this random primitive
                     // note we reset this to false in the 
                     // Visit(RandomPrimitive) method
-                    sampled.ForceRegen = true;                    
+                    sampled.ForceRegen = true;
+
+
+                    sampled.Accept(sampler);
+                    //var key = (from e in this.trace select e.Sample).ToArray();
                 }                
                 trace.Clear();
 
