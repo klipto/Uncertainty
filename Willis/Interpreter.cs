@@ -30,6 +30,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Threading;
 
 namespace Microsoft.Research.Willis
 {
@@ -100,40 +101,59 @@ namespace Microsoft.Research.Willis
 
             }
         }
+        
 
         public IEnumerable<Tuple<int, int, int>> Run(IList<Compiler.Bytecode> codes, string input)
         {
+            int count;
             var labelMap = new Dictionary<int, int>();
-            for(int idx = 0; idx < codes.Count; idx++)
+            var output = new List<Tuple<int, int, int>>();
+            try
             {
-                var code = codes[idx];
-                if (code is Compiler.Label)
+                for (int idx = 0; idx < codes.Count; idx++)
                 {
-                    var loc = ((Compiler.Label)code).Location;
-                    labelMap[loc] = idx;
+                    var code = codes[idx];
+                    if (code is Compiler.Label)
+                    {
+                        var loc = ((Compiler.Label)code).Location;
+                        labelMap[loc] = idx;
+                    }
                 }
+
+                //var labelMap = codes.
+                //    Select((code, idx) => new { code, idx }).
+                //    Where(code => code.code is Compiler.Label).
+                //    ToDictionary(k => ((Compiler.Label)k.code).Location, e => e.idx);
+
+                count = 1 + codes.Where(k => k is Compiler.Save).Select(k => ((Compiler.Save)k).Id).Max();
+                //Contract.Assert(count % 2 == 0);
+            } 
+            catch (Exception)
+            {
+                return output;
             }
-            
-            //var labelMap = codes.
-            //    Select((code, idx) => new { code, idx }).
-            //    Where(code => code.code is Compiler.Label).
-            //    ToDictionary(k => ((Compiler.Label)k.code).Location, e => e.idx);
-
-            var count = 1 + codes.Where(k => k is Compiler.Save).Select(k => ((Compiler.Save)k).Id).Max();
-            Contract.Assert(count % 2 == 0);
-
-            var matches = new List<int>();
-            for (int i = 0; i < count; i++) matches.Add(-1);
-            if (Recurse(codes, input, labelMap, 0, 0, matches))
-                for (int id = 0; id < count / 2; id++)
-                {
-                    var start = 2 * id;
-                    var end = 2 * id + 1;
-                    if (matches[start] != -1 && matches[end] != -1)
-                        yield return Tuple.Create(id, matches[start], matches[end]);
+           
+            //ThreadStart st = () =>
+            {
+                var matches = new List<int>();                
+                for (int i = 0; i < count; i++) matches.Add(-1);
+                if (Recurse(codes, input, labelMap, 0, 0, matches))
+                {                    
+                    for (int id = 0; id < count / 2; id++)
+                    {
+                        var start = 2 * id;
+                        var end = 2 * id + 1;
+                        if (matches[start] != -1 && matches[end] != -1)
+                            output.Add(Tuple.Create(id, matches[start], matches[end]));
+                    }
                 }
+            };
 
-            yield break;
+            //var thread = new Thread(st, 1024 * 1024 * 1024);
+            //thread.Start();
+            //thread.Join();
+            return output;
         }
     }
 }
+       

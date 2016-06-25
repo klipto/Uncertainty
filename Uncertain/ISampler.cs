@@ -35,8 +35,8 @@ namespace Microsoft.Research.Uncertain
     {
         internal static ISampler<T> Create<T>(Uncertain<T> source)
         {
-            return new ForwardSampler<T>(source);
-            //return new MarkovChainMonteCarloSampler<T>(source);
+            //return new ForwardSampler<T>(source);
+            return new MarkovChainMonteCarloSampler<T>(source);
         }
     }
 

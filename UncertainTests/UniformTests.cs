@@ -30,11 +30,31 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using Microsoft.Research.Uncertain;
+using Microsoft.Research.Uncertain.Inference;
 using System.Linq;
+using System;
 
 namespace UncertainTests {
     [TestClass]
     public class UniformTests {
+
+        [TestMethod]
+        public void TestExpectedValueAndMax()
+        {
+            var p = from x in new Uniform<double>(-13, 20)
+                    from y in new Uniform<double>(-13, 20)
+                    select Math.Max(x, y);
+
+            var tmp = p.ExpectedValueWithConfidence(10000);
+            var expected = 1.0 / 3.0 * (2 * 20 + -13);
+
+            //var p = from a in new FiniteEnumeration<int>(new[] { 0, 5, 10 })
+            //        select Math.Max(7, 3 + a);
+            //var tmp = p.Support().ToList();
+            //var e = p.Inference().Support().Select(pair => pair.Value * pair.Probability).Sum();
+            int xx = 10;
+        }
+
         [TestMethod]
         public void Uniform_Sample() {
             // arrange
