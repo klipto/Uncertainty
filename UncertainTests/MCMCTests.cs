@@ -257,9 +257,9 @@ namespace UncertainTests
         }
 
 
-        private static int Func(int state, int input)
+        private static int Func(int[] input)
         {
-            state += input;
+            
             return state;
         }
 
@@ -270,7 +270,7 @@ namespace UncertainTests
             {
                 ustate = from s in ustate
                          from i in u
-                         let f = Func(s, i)
+                         let f = Func(s, i)  
                          select f;
                 yield return ustate;
             }
@@ -507,6 +507,11 @@ namespace UncertainTests
                 });
             return output;
         }
+
+    }
+
+    class Stream<T>
+    {
 
     }
 
