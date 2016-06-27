@@ -211,7 +211,7 @@ namespace Microsoft.Research.Willis
                 return strs.Inference();
             };
 
-            var edits = new Multinomial<Func<string, Uncertain<string>>>(new[] { insert, delete, substitute, /*makenongreedy, makegreedy*/ });
+            var edits = new Multinomial<Func<string, Uncertain<string>>>(new[] { insert, delete, substitute });
 
             var output = from edit in edits
                          from editedinput in edit(input)
@@ -226,16 +226,7 @@ namespace Microsoft.Research.Willis
             return recurse;
         }
 
-        private static Uncertain<T> TopK<T>(Uncertain<T> source)
-        {
-            var foo = source.SampledInference(100).Support().OrderByDescending(k => k.Probability).ToList();
-            return new FiniteEnumeration<T>(foo.ToList());
-            //int count = (int)(foo.Count * 0.1);
-            //Console.WriteLine(String.Format("{0} {1}", foo.Count, count));
-            //return new FiniteEnumeration<T>(foo.Take(count).ToList());
-        }
-
-        static Uncertain<string> PossibleInterpretations3(IList<char> legalChars, string input, int depth)
+        static Uncertain<string> PossibleInterpretations3(IList<char> legalChars, string input, int depth, bool runInference = false)
         {
             if (depth == 0)
                 return (Uncertain<string>) input;
@@ -252,7 +243,7 @@ namespace Microsoft.Research.Willis
                            where copy != input
                            select copy;
 
-                return strs.Inference();
+                return strs;
             };
 
             Func<string, Uncertain<string>> delete = str =>
@@ -263,7 +254,7 @@ namespace Microsoft.Research.Willis
                            let copy = str.Remove(pos, 1)
                            where copy != input
                            select copy;
-                return strs.Inference();
+                return strs;
             };
 
             Func<string, Uncertain<string>> substitute = str =>
@@ -275,26 +266,28 @@ namespace Microsoft.Research.Willis
                            let copy = str.Remove(pos, 1).Insert(pos, c.ToString())
                            where copy != input
                            select copy;
-                return strs.Inference();
+                return strs;
             };
 
-            var edits = new Multinomial<Func<string, Uncertain<string>>>(new[] { insert, delete, substitute, /*makenongreedy, makegreedy*/ });
+            var edits = new Multinomial<Func<string, Uncertain<string>>>(new[] { insert, delete, substitute });
 
             var output = from edit in edits
                          from editedinput in edit(input)
                          where editedinput != String.Empty && Parser.IsExpression(editedinput)
                          select editedinput;
 
+            // toddm: recursive definition vs hard coded depth.  The latter works better for now.
             //var recurse = from edit in output.Inference()
             //              from b in new Flip(0.1)
-            //              let next = b ? PossibleInterpretations3(legalChars, edit, depth) : edit
+            //              let next = b ? PossibleInterpretations3(legalChars, edit, depth, runInference) : edit
             //              from recursivelyedited in next
             //              select recursivelyedited;
 
-            var recurse = from edit in output.Inference()
-                          from recursivelyedited in PossibleInterpretations3(legalChars, edit, depth - 1)
+            var recurse = from edit in output
+                          from recursivelyedited in PossibleInterpretations3(legalChars, edit, depth - 1, runInference)
                           select recursivelyedited;
-            return recurse;
+
+            return runInference ? recurse.Inference() : recurse;
         }
 
 
@@ -395,13 +388,50 @@ namespace Microsoft.Research.Willis
             //return Math.Exp(score/ best);
         };
 
+        private static bool Score(IEnumerable<Tuple<int, int, int>> guesses, IEnumerable<Tuple<int, int, int>> corrects)
+        {
+            double score = 0, ideal = 0;
+            foreach(var correct in corrects)
+            {
+                ideal += (correct.Item3 - correct.Item2);
+
+                var guess = (from g in guesses where g.Item1 == correct.Item1 select g).FirstOrDefault();
+
+                if (guess == null)
+                {
+                    continue;
+                }
+
+                if (guess.Item3 < correct.Item2 || guess.Item2 > correct.Item3)
+                {
+                    continue;
+                }
+
+                if (guess.Item3 < correct.Item2 || guess.Item2 > correct.Item3)
+                {
+                    //score += 0.01; // totally missed the boat
+                    continue;
+                }
+
+                var st = Math.Max(correct.Item2, guess.Item2);
+                var ed = Math.Min(correct.Item3, guess.Item3);
+                var overlap = Math.Abs(ed - st);
+                score += overlap; // / (double)(correct.Item3 - correct.Item2);
+            }
+            //if (score == ideal)
+            //{
+            //    int x = 10;
+            //}
+            return score == ideal;
+        }
+
         static void Main(string[] args)
         {
 
-            var test = "(aa*)";
-            var parsed = new Parser(test).Parse();
-            var compiled = new Compiler().Compile(parsed).ToList();
-            var output = new Interpreter().Run(compiled, "abc");
+            //var test = "(aa*)";
+            //var parsed = new Parser(test).Parse();
+            //var compiled = new Compiler().Compile(parsed).ToList();
+            //var output = new Interpreter().Run(compiled, "abc");
 
             var examples = (from example in new[] { "aabbbbc", "abc", "aaaaaaaabbbbbbbc" }
                            let re = new Parser("(a*)(b*)(c)").Parse()
@@ -413,24 +443,16 @@ namespace Microsoft.Research.Willis
             var example3 = examples[2];
 
             var interpreter = new Interpreter();
-
-            found = new HashSet<string>();
-
-            var p = from stmt in PossibleInterpretations3(new[] { 'a', 'b', 'c', '.', '*' }, "(.)(.)(.)", 3)
-                    where System.Text.RegularExpressions.Regex.IsMatch(stmt, "\\*\\*") == false // causes interpreter to go into infinite loop                    
-                    let re = new Parser(stmt).Parse()
-                    let codes = new Compiler().Compile(re).ToList()
-
-                    let prob = examples.Select(e => Cmp2(interpreter.Run(codes, e.Item1), stmt, e.Item2) * (double) e.Item3.Length).Sum()
-
-                    select new Weighted<string>
-                    {
-                        Value = stmt,
-                        Probability = prob
-                    };
+            
+            var program = from stmt in PossibleInterpretations3(new[] { 'a', 'b', 'c', '.', '*' }, "(.)(.)(.)", 4, false)
+                          where System.Text.RegularExpressions.Regex.IsMatch(stmt, "\\*\\*") == false // causes interpreter to go into infinite loop                    
+                          let re = new Parser(stmt).Parse()
+                          let codes = new Compiler().Compile(re).ToList()
+                          where examples.Select(e => Score(new Interpreter().Run(codes, e.Item1), e.Item2)).All(score => score)
+                          select stmt;
 
             //var tmpf = p.SampledInference(100000).Support().OrderByDescending(pp => pp.Probability).Take(20).ToList();
-            var tmpf = p.Inference().Support().OrderByDescending(pp => pp.Probability).Take(20).ToList();
+            var tmpf = program.Inference().Support().OrderByDescending(pp => pp.Probability).Take(20).ToList();
             foreach (var i in tmpf)
             {
                 Console.WriteLine(String.Format("{0} {1}", i.Value, i.Probability));
