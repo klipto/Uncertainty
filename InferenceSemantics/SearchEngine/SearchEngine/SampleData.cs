@@ -6,11 +6,10 @@ using System.Threading.Tasks;
 
 namespace SearchEngine
 {
-    class PageRank
+   public class SampleData
     {
-        public void rank(WebPage webpage)
-        {
-
-        }
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
     }
 }
