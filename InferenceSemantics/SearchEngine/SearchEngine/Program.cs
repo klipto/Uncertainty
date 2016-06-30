@@ -28,7 +28,7 @@ namespace SearchEngine
 
                 Console.Write("Perform search\n");
                 Search s = new Search();
-                TopDocs topDocs = s.performSearch("California", 100);
+                TopDocs topDocs = s.performSearch("Florida", 100);
                 Console.Write("Results found: " + topDocs.TotalHits+ "\n");
                 ScoreDoc[] hits = topDocs.ScoreDocs;
                 for(int x=0;x<hits.Length;x++) {
