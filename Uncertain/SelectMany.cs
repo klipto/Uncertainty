@@ -48,7 +48,7 @@ namespace Microsoft.Research.Uncertain
             this.ResultSelector = resultSelector;
         }
 
-        protected override IEnumerable<Weighted<TResult>> GetSupport()
+        public override IEnumerable<Weighted<TResult>> GetSupport()
         {
             foreach (Weighted<TSource> a in this.source.Support())
             {

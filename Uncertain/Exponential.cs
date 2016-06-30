@@ -47,24 +47,24 @@ namespace Microsoft.Research.Uncertain
             return this.lambda * Math.Exp(-this.lambda * t);
         }
 
-        protected override IEnumerable<Weighted<double>> GetSupport()
+        public override IEnumerable<Weighted<double>> GetSupport()
         {
             throw new Exception("Infnite support");
         }
-        protected override double GetSample()
+        public override double GetSample()
         {
             var sample = -this.lambda * Math.Log(Extensions.rand.NextDouble());
             return sample;
         }
 
-        protected override bool StructuralEquals(RandomPrimitive other)
+        public override bool StructuralEquals(RandomPrimitive other)
         {
             if (other is Exponential)
                 return ((Exponential)other).lambda == this.lambda;
             return false;
         }
 
-        protected override int GetStructuralHash()
+        public override int GetStructuralHash()
         {
             return this.lambda.GetHashCode();
         }

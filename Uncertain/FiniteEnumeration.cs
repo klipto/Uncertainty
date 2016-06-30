@@ -61,12 +61,12 @@ namespace Microsoft.Research.Uncertain
             return this.sampleMap[t];
         }
 
-        protected override T GetSample()
+        public override T GetSample()
         {
             return this.table.Sample();
         }
 
-        protected override int GetStructuralHash()
+        public override int GetStructuralHash()
         {
             int hash = 0;
             foreach (var item in this.sampleMap)
@@ -76,7 +76,7 @@ namespace Microsoft.Research.Uncertain
             return hash;
         }
 
-        protected override IEnumerable<Weighted<T>> GetSupport()
+        public override IEnumerable<Weighted<T>> GetSupport()
         {
             foreach(var item in sampleMap)
             {
@@ -84,7 +84,7 @@ namespace Microsoft.Research.Uncertain
             }
         }
 
-        protected override bool StructuralEquals(RandomPrimitive other)
+        public override bool StructuralEquals(RandomPrimitive other)
         { 
             if (other is FiniteEnumeration<T>)
             {

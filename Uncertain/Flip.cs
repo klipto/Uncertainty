@@ -41,7 +41,7 @@ namespace Microsoft.Research.Uncertain
             this.p = p;
         }
 
-        protected override IEnumerable<Weighted<bool>> GetSupport()
+        public override IEnumerable<Weighted<bool>> GetSupport()
         {
             yield return new Weighted<bool>() { Value = true, Probability = p };
             yield return new Weighted<bool>() { Value = false, Probability = 1 - p };
@@ -52,19 +52,19 @@ namespace Microsoft.Research.Uncertain
             return t ? this.p : 1 - this.p;
         }
 
-        protected override bool GetSample()
+        public override bool GetSample()
         {
             return Extensions.rand.NextDouble() < this.p;
         }
 
-        protected override bool StructuralEquals(RandomPrimitive other)
+        public override bool StructuralEquals(RandomPrimitive other)
         {
             if (other is Flip)
                 return ((Flip)other).p == this.p;
             return false;
         }
 
-        protected override int GetStructuralHash()
+        public override int GetStructuralHash()
         {
             return this.p.GetHashCode();
         }

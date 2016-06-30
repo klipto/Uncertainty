@@ -42,7 +42,7 @@ namespace Microsoft.Research.Uncertain
         public double Score { get; set; }
         public bool Reused { get; set; }
         public RandomPrimitive Erp { get; private set; }
-        public TraceEntry(Address location, RandomPrimitive erp, object sample, double score, bool reuse = false)
+        public TraceEntry(Address location, RandomPrimitive erp, object sample, double score, bool reuse = false):this()
         {
             this.Location = location;
             this.Erp = erp;

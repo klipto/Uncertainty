@@ -42,7 +42,7 @@ namespace Microsoft.Research.Uncertain
             this.Predicate = predicate;
         }
 
-        protected override IEnumerable<Weighted<T>> GetSupport()
+        public override IEnumerable<Weighted<T>> GetSupport()
         {
             foreach (var item in this.source.Support())
                 if (this.Predicate(item.Value))

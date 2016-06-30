@@ -35,7 +35,7 @@ namespace Microsoft.Research.Uncertain
         public Rayleigh(double Rho) : base(0, Rho)
         { }
 
-        protected override double GetSample()
+        public override double GetSample()
         {
             var x = base.NextGaussian();
             var y = base.NextGaussian();

@@ -427,21 +427,30 @@ namespace Microsoft.Research.Willis
 
         static void Main(string[] args)
         {
-
-            //var test = "(aa*)";
-            //var parsed = new Parser(test).Parse();
-            //var compiled = new Compiler().Compile(parsed).ToList();
-            //var output = new Interpreter().Run(compiled, "abc");
-
+            var test = "(aa*)";
+            var parsed = new Parser(test).Parse();
+            Console.Write("parsed: "+parsed+"\n");
+            var compiled = new Compiler().Compile(parsed).ToList();
+            foreach (var c in compiled)
+            {
+                Console.Write("compiled: " + c + "\n");
+            }
+            
+            var output = new Interpreter().Run(compiled, "abc");
+            foreach (var o in output)
+            {
+                Console.Write("output: " + o + "\n"); 
+            }
+           
             var examples = (from example in new[] { "aabbbbc", "abc", "aaaaaaaabbbbbbbc" }
                            let re = new Parser("(a*)(b*)(c)").Parse()
-                           let codes = new Compiler().Compile(re).ToList()
+                           let codes = new Compiler().Compile(re).ToList()                           
                            let matches = new Interpreter().Run(codes, example)
                            select Tuple.Create(example, matches, example)).ToList();
             var example1 = examples[0];
             var example2 = examples[1];
             var example3 = examples[2];
-
+  
             var interpreter = new Interpreter();
             
             var program = from stmt in PossibleInterpretations3(new[] { 'a', 'b', 'c', '.', '*' }, "(.)(.)(.)", 4, false)
@@ -450,7 +459,7 @@ namespace Microsoft.Research.Willis
                           let codes = new Compiler().Compile(re).ToList()
                           where examples.Select(e => Score(new Interpreter().Run(codes, e.Item1), e.Item2)).All(score => score)
                           select stmt;
-
+            Console.Write(program);
             //var tmpf = p.SampledInference(100000).Support().OrderByDescending(pp => pp.Probability).Take(20).ToList();
             var tmpf = program.Inference().Support().OrderByDescending(pp => pp.Probability).Take(20).ToList();
             foreach (var i in tmpf)
@@ -459,10 +468,10 @@ namespace Microsoft.Research.Willis
             }
             Console.WriteLine();
 
-            foreach (var i in found)
-            {
-                Console.WriteLine(i);
-            }
+           // foreach (var i in found)
+            //{
+              //  Console.WriteLine(i);
+            //}
 
             //var sampler = new MarkovChainMonteCarloSampler<string>(p);
             //int count = 0;

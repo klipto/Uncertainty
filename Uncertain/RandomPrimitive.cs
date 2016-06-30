@@ -43,13 +43,13 @@ namespace Microsoft.Research.Uncertain
     {
         private Tuple<int, T> cached;
 
-        protected RandomPrimitive() 
+        public RandomPrimitive() 
         {
             ((RandomPrimitive)this).ForceRegen = false;
             this.cached = Tuple.Create(0, default(T));
         }
 
-        protected abstract T GetSample();
+        public abstract T GetSample();
         public T Sample(int generation)
         {
             if (this.cached.Item1 == generation && ((RandomPrimitive)this).ForceRegen == false)
@@ -58,8 +58,8 @@ namespace Microsoft.Research.Uncertain
             return this.cached.Item2;
         }
 
-        protected abstract bool StructuralEquals(RandomPrimitive other);
-        protected abstract int GetStructuralHash();
+        public abstract bool StructuralEquals(RandomPrimitive other);
+        public abstract int GetStructuralHash();
 
         public abstract double Score(T t);
 
