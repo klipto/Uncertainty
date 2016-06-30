@@ -51,7 +51,7 @@ namespace SearchEngine
             doc.Add(new Field("Name", sampleData.Name.ToString(), Field.Store.YES, Field.Index.ANALYZED));
             doc.Add(new Field("Description", sampleData.Description.ToString(), Field.Store.YES, Field.Index.ANALYZED));
             string searchableText=sampleData.Id + " " + sampleData.Name + " " + sampleData.Description;
-
+            doc.Add(new Field("content",searchableText, Field.Store.NO, Field.Index.ANALYZED));
             writer.AddDocument(doc);
         }
 
