@@ -18,11 +18,12 @@ namespace SearchEngine
     class Program
     {
         public static int number_of_machines= 3;   
-        public static List<List<SampleData>> data_partitions_for_distributed_search = new List<List<SampleData>>();
+        public static Dictionary<int, List<SampleData>> data_partitions_for_distributed_search = 
+            new Dictionary<int, List<SampleData>>();
 
-        static List<List<SampleData>> CreateDataPartitions (List<SampleData> dataset, int number_of_machines)
+        static Dictionary<int, List<SampleData>> CreateDataPartitions (List<SampleData> dataset, int number_of_machines)
         {
-            List<List<SampleData>> partitions = new List<List<SampleData>>();
+            Dictionary<int, List<SampleData>> partitions = new Dictionary<int, List<SampleData>>();
             Dictionary<int, int> partition_sizes = new Dictionary<int, int>();
             int partition_size=0;
 
@@ -52,7 +53,7 @@ namespace SearchEngine
                     partition.Add(dataset[x]);
                 }
                 index = index + machine_partition_size.Value;
-                partitions.Add(partition);                
+                partitions.Add(machine_partition_size.Key, partition);                
             }        
             return partitions;
         }
@@ -63,15 +64,15 @@ namespace SearchEngine
             {
                 data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
                 int machine=1;
-                foreach (List<SampleData> data_partition in data_partitions_for_distributed_search)
+                foreach (var data_partition in data_partitions_for_distributed_search)
                 {
                     Console.Write("Machine " + machine + " building indexes\n");
                     Index indexer = new Index();
-                    indexer.rebuildIndex(data_partition);
+                    indexer.rebuildIndex(data_partition.Value);
                     Console.Write("Building indexes done\n");
                     Console.Write("Perform search\n");
                     Search s = new Search();
-                    TopDocs topDocs = s.performSearch("Allahabad Seattle  friendship", 100);
+                    TopDocs topDocs = s.performSearch("Allahabad Seattle", 100);
                     Console.Write("Results found: " + topDocs.TotalHits + "\n");
                     ScoreDoc[] hits = topDocs.ScoreDocs;
                     for (int x = 0; x < hits.Length; x++)
