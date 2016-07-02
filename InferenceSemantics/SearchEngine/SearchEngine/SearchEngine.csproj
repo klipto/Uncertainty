@@ -48,6 +48,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Constant.cs" />
+    <Compile Include="DataParser.cs" />
     <Compile Include="SampleData.cs" />
     <Compile Include="Index.cs" />
     <Compile Include="SampleDataRepository.cs" />

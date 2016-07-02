@@ -22,14 +22,14 @@ namespace SearchEngine
         {
 
         }
-        private IndexWriter indexWriter;
+        private IndexWriter indexWriter=null;
 
-        public IndexWriter getIndexWriter(Boolean create)
+        public IndexWriter getIndexWriter(bool create)
         {
             if (indexWriter == null)
             {
                 FSDirectory indexDir = FSDirectory.Open(new DirectoryInfo("index-directory"));
-                indexWriter = new IndexWriter(indexDir, new StandardAnalyzer(Version.LUCENE_30), IndexWriter.MaxFieldLength.UNLIMITED);                
+                indexWriter = new IndexWriter(indexDir, new StandardAnalyzer(Version.LUCENE_30), create, IndexWriter.MaxFieldLength.UNLIMITED);                
             }
             return indexWriter;
         }

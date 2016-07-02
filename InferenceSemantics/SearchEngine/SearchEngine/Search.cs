@@ -22,7 +22,7 @@ namespace SearchEngine
     {
         private IndexSearcher searcher = null;
         private QueryParser parser = null;
-
+              
         public Search()
         {
             searcher = new IndexSearcher(FSDirectory.Open(new DirectoryInfo("index-directory")), false);

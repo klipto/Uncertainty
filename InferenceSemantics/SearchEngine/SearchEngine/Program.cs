@@ -14,9 +14,12 @@ using Lucene.Net.Store;
 using Version = Lucene.Net.Util.Version;
 
 namespace SearchEngine
+
 {
+    
     class Program
     {
+        public static int number_of_servers = 3;    
         static void Main(string[] args)
         {
             try
@@ -28,7 +31,7 @@ namespace SearchEngine
 
                 Console.Write("Perform search\n");
                 Search s = new Search();
-                TopDocs topDocs = s.performSearch("Florida", 100);
+                TopDocs topDocs = s.performSearch("aaa", 100);
                 Console.Write("Results found: " + topDocs.TotalHits+ "\n");
                 ScoreDoc[] hits = topDocs.ScoreDocs;
                 for(int x=0;x<hits.Length;x++) {
@@ -36,7 +39,7 @@ namespace SearchEngine
                     Console.Write(doc.GetField("Id")+ " "+ doc.GetField("Name")+ " "+doc.GetField("Description") + " " + hits[x].Score);
                     Console.Write("\n");
                 }
-                Console.Write("Finished\n");
+                Console.Write("Finished\n");                
             }
             catch (Exception e)
             {
@@ -45,5 +48,4 @@ namespace SearchEngine
             Console.ReadKey();
         }
     }
-
 }
