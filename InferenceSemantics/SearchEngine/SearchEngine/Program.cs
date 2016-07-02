@@ -58,21 +58,27 @@ namespace SearchEngine
             return partitions;
         }
 
+        public static void finalSearch()
+        {
+
+        }
         static void Main(string[] args)
         {
            try
             {
                 data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
                 int machine=1;
+
+                // distribute search to available servers
                 foreach (var data_partition in data_partitions_for_distributed_search)
                 {
                     Console.Write("Machine " + machine + " building indexes\n");
                     Index indexer = new Index();
                     indexer.rebuildIndex(data_partition.Value);
                     Console.Write("Building indexes done\n");
-                    Console.Write("Perform search\n");
+                    Console.Write("Machine "+ machine + " performing search\n");
                     Search s = new Search();
-                    TopDocs topDocs = s.performSearch("Allahabad Seattle", 100);
+                    TopDocs topDocs = s.performSearch("Allahabad Seattle", 5);
                     Console.Write("Results found: " + topDocs.TotalHits + "\n");
                     ScoreDoc[] hits = topDocs.ScoreDocs;
                     for (int x = 0; x < hits.Length; x++)
@@ -85,6 +91,8 @@ namespace SearchEngine
                     Console.Write("Finished\n");
                 }
                
+               // final search in the "central server" using results from the other servers
+                finalSearch();
             }
             catch (Exception e)
             {
