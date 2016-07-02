@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
-
 using System.IO;
-
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
@@ -44,8 +41,8 @@ namespace SearchEngine
 
         public void indexSampleData(SampleData sampleData)
         {
-            Console.Write("Indexing sample data:"+ sampleData+"\n");
-            IndexWriter writer = getIndexWriter(false);
+            Console.Write("Indexing sample data\n");
+            IndexWriter writer = getIndexWriter(true);
             Document doc = new Document();
             doc.Add(new Field("Id", sampleData.Id.ToString(), Field.Store.YES, Field.Index.NOT_ANALYZED));
             doc.Add(new Field("Name", sampleData.Name.ToString(), Field.Store.YES, Field.Index.ANALYZED));
@@ -55,16 +52,13 @@ namespace SearchEngine
             writer.AddDocument(doc);
         }
 
-        public void rebuildIndex()
-        {
-            getIndexWriter(true);
-            List<SampleData> datas = SampleDataRepository.GetAll();
-            foreach (SampleData data in datas)
+        public void rebuildIndex(List<SampleData> dataset)
+        {         
+            foreach (SampleData data in dataset)
             {
                 indexSampleData(data);
             }
             closeIndexWriter();
         }
-
     }
 }
