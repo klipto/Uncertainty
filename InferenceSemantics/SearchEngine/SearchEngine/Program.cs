@@ -17,8 +17,12 @@ namespace SearchEngine
 {
     class Program
     {
-        public static int number_of_machines = 3;
-        public static Dictionary<int, List<SampleData>> data_partitions_for_distributed_search =
+        private static int number_of_machines = 3;
+        
+        // This is used by the  "central server" to prune the results of the other servers and return the final top-k.
+        private static double desired_fraction_of_max_score = 0.7;
+
+        private static Dictionary<int, List<SampleData>> data_partitions_for_distributed_search =
             new Dictionary<int, List<SampleData>>();
 
         static Dictionary<int, List<SampleData>> CreateDataPartitions(List<SampleData> dataset, int number_of_machines)
@@ -64,7 +68,10 @@ namespace SearchEngine
             {
                 foreach (var key1 in score_summaries[key].Keys)
                 {
-                    Console.Write(key1 + " : " + score_summaries[key][key1] + "\n");
+                    if (score_summaries[key][key1] >= desired_fraction_of_max_score) 
+                   {
+                       Console.Write(key1 + " : " + score_summaries[key][key1] + "\n");
+                   }
                 }
             }
         }
@@ -72,6 +79,7 @@ namespace SearchEngine
         static void Main(string[] args)
         {
             Dictionary<int, Dictionary<Field, double>> score_summaries = new Dictionary<int, Dictionary<Field, double>>();
+            
             try
             {
                 data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
