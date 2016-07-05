@@ -17,6 +17,7 @@ namespace SearchEngine
 {
     class Program
     {
+
         private static int number_of_machines = 3;
         
         // This is used by the  "central server" to prune the results of the other servers and return the final top-k.
@@ -122,8 +123,10 @@ namespace SearchEngine
             catch (Exception e)
             {
                 Console.Write("Exception" + e.GetType());
+
             }
             Console.ReadKey();
         }
     }
+
 }

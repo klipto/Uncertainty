@@ -76,6 +76,7 @@ namespace SearchEngine
                 new SampleData {Id=59, Name="Seattle", Description="City in Washington"}, 
                 new SampleData {Id=60, Name="Buffalo", Description="City in New York"}, 
                 new SampleData {Id=61, Name="San francisco", Description="City in California"}, 
+
             };
         }
     }
