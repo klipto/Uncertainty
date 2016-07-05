@@ -20,10 +20,8 @@ namespace SearchEngine
     {
 
         private static int number_of_machines = 3;
-
         // This is used by the  "central server" to prune the results of the other servers and return the final top-k.
         private static double threshold = 0.7;
-
         private static Dictionary<int, List<SampleData>> data_partitions_for_distributed_search =
             new Dictionary<int, List<SampleData>>();
 
@@ -81,8 +79,17 @@ namespace SearchEngine
         static void Main(string[] args)
         {
             Dictionary<int, Dictionary<Field, double>> score_summaries = new Dictionary<int, Dictionary<Field, double>>();
+
+            //trying out inference
             Uncertain<double> top_k = new Gaussian(5, 0.5);
-            Console.Write(top_k.SampledInference(10).Support());
+            Uncertain<bool> test = new Bernoulli(0.5);
+            var list1 = test.Inference().Support().Take(5).ToList();
+            var list = top_k.SampledInference(10000).Support().Take(5).ToList();
+            foreach (var l in list) 
+            {
+                Console.Write(l + "\n");
+            }
+
             try
             {
                 data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
@@ -92,17 +99,14 @@ namespace SearchEngine
                 foreach (var data_partition in data_partitions_for_distributed_search)
                 {
                     Dictionary<Field, double> score_ratios = new Dictionary<Field, double>();
-
                     Console.Write("Machine " + machine + " building indexes\n");
                     Index indexer = new Index();
                     indexer.rebuildIndex(data_partition.Value);
                     Console.Write("Building indexes done\n");
                     Console.Write("Machine " + machine + " performing search\n");
-                    Search s = new Search();
-                   
+                    Search s = new Search();                   
                     TopDocs topDocs = s.performSearch("Allahabad Seattle", 5);
                     Console.Write("Results found: " + topDocs.TotalHits + "\n");
-
                     ScoreDoc[] hits = topDocs.ScoreDocs;
                     for (int x = 0; x < hits.Length; x++)
                     {
@@ -115,9 +119,7 @@ namespace SearchEngine
                     score_summaries.Add(machine, score_ratios);
                     machine++;
                     Console.Write("Finished\n");
-
                 }
-
                 // final search in the "central server" using results from the other servers
                 finalSearch(score_summaries);
             }
@@ -128,5 +130,4 @@ namespace SearchEngine
             Console.ReadKey();
         }
     }
-
 }

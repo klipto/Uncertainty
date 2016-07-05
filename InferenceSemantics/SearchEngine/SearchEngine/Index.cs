@@ -25,17 +25,12 @@ namespace SearchEngine
         }
 
         private IndexWriter indexWriter=null;
-
         public IndexWriter getIndexWriter(bool create)
-
-
         {
             if (indexWriter == null)
             {
                 FSDirectory indexDir = FSDirectory.Open(new DirectoryInfo("index-directory"));
-
-                indexWriter = new IndexWriter(indexDir, new StandardAnalyzer(Version.LUCENE_30), create, IndexWriter.MaxFieldLength.UNLIMITED);                
-
+                indexWriter = new IndexWriter(indexDir, new StandardAnalyzer(Version.LUCENE_30), create, IndexWriter.MaxFieldLength.UNLIMITED); 
             }
             return indexWriter;
         }
@@ -50,10 +45,8 @@ namespace SearchEngine
 
         public void indexSampleData(SampleData sampleData)
         {
-
             Console.Write("Indexing sample data\n");
             IndexWriter writer = getIndexWriter(true);
-
             Document doc = new Document();
             doc.Add(new Field("Id", sampleData.Id.ToString(), Field.Store.YES, Field.Index.NOT_ANALYZED));
             doc.Add(new Field("Name", sampleData.Name.ToString(), Field.Store.YES, Field.Index.ANALYZED));
@@ -63,16 +56,13 @@ namespace SearchEngine
             writer.AddDocument(doc);
         }
 
-
         public void rebuildIndex(List<SampleData> dataset)
         {         
             foreach (SampleData data in dataset)
-
             {
                 indexSampleData(data);
             }
             closeIndexWriter();
         }
-
     }
 }
