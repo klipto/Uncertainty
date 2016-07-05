@@ -252,7 +252,7 @@ namespace Microsoft.Research.Willis
                            where copy != input
                            select copy;
 
-                return strs.Inference();
+                return strs;
             };
 
             Func<string, Uncertain<string>> delete = str =>
@@ -263,7 +263,7 @@ namespace Microsoft.Research.Willis
                            let copy = str.Remove(pos, 1)
                            where copy != input
                            select copy;
-                return strs.Inference();
+                return strs;
             };
 
             Func<string, Uncertain<string>> substitute = str =>
@@ -275,7 +275,7 @@ namespace Microsoft.Research.Willis
                            let copy = str.Remove(pos, 1).Insert(pos, c.ToString())
                            where copy != input
                            select copy;
-                return strs.Inference();
+                return strs;
             };
 
             var edits = new Multinomial<Func<string, Uncertain<string>>>(new[] { insert, delete, substitute, /*makenongreedy, makegreedy*/ });
@@ -285,13 +285,13 @@ namespace Microsoft.Research.Willis
                          where editedinput != String.Empty && Parser.IsExpression(editedinput)
                          select editedinput;
 
-            //var recurse = from edit in output.Inference()
-            //              from b in new Flip(0.1)
-            //              let next = b ? PossibleInterpretations3(legalChars, edit, depth) : edit
+            //var recurse = from edit in output//.Inference()
+            //              from b in new Flip(0.5)
+            //              let next = b ? PossibleInterpretations3(legalChars, edit, depth - 1) : edit
             //              from recursivelyedited in next
             //              select recursivelyedited;
 
-            var recurse = from edit in output.Inference()
+            var recurse = from edit in output
                           from recursivelyedited in PossibleInterpretations3(legalChars, edit, depth - 1)
                           select recursivelyedited;
             return recurse;
@@ -388,10 +388,11 @@ namespace Microsoft.Research.Willis
 
             if (tmpscore == best)
             {
+                return 1;
                 found.Add(stmt);
-                return 100000;
+                //return 100000;
             }
-            return score / best;
+            return 0;// score / best;
             //return Math.Exp(score/ best);
         };
 
@@ -416,21 +417,21 @@ namespace Microsoft.Research.Willis
 
             found = new HashSet<string>();
 
-            var p = from stmt in PossibleInterpretations3(new[] { 'a', 'b', 'c', '.', '*' }, "(.)(.)(.)", 3)
+            var p = from stmt in PossibleInterpretations3(new[] { 'a', 'b', 'c', '.', '*' }, "(.)(.)(.)", 4)
                     where System.Text.RegularExpressions.Regex.IsMatch(stmt, "\\*\\*") == false // causes interpreter to go into infinite loop                    
                     let re = new Parser(stmt).Parse()
                     let codes = new Compiler().Compile(re).ToList()
+                    where examples.Select(e => Cmp2(interpreter.Run(codes, e.Item1), stmt, e.Item2) == 1).All(i => i)
+                    select stmt;
+            //let prob = examples.Select(e => Cmp2(interpreter.Run(codes, e.Item1), stmt, e.Item2) * (double) e.Item3.Length).Sum()
+            //select new Weighted<string>
+            //{
+            //    Value = stmt,
+            //    Probability = prob
+            //};
 
-                    let prob = examples.Select(e => Cmp2(interpreter.Run(codes, e.Item1), stmt, e.Item2) * (double) e.Item3.Length).Sum()
-
-                    select new Weighted<string>
-                    {
-                        Value = stmt,
-                        Probability = prob
-                    };
-
-            //var tmpf = p.SampledInference(100000).Support().OrderByDescending(pp => pp.Probability).Take(20).ToList();
             var tmpf = p.Inference().Support().OrderByDescending(pp => pp.Probability).Take(20).ToList();
+            //var tmpf = p.Inference().Support().OrderByDescending(pp => pp.Probability).Take(20).ToList();
             foreach (var i in tmpf)
             {
                 Console.WriteLine(String.Format("{0} {1}", i.Value, i.Probability));
