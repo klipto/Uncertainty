@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Research.Uncertain;
+using Microsoft.Research.Uncertain.Inference;
 
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
@@ -19,9 +20,9 @@ namespace SearchEngine
     {
 
         private static int number_of_machines = 3;
-        
+
         // This is used by the  "central server" to prune the results of the other servers and return the final top-k.
-        private static double desired_fraction_of_max_score = 0.7;
+        private static double threshold = 0.7;
 
         private static Dictionary<int, List<SampleData>> data_partitions_for_distributed_search =
             new Dictionary<int, List<SampleData>>();
@@ -69,10 +70,10 @@ namespace SearchEngine
             {
                 foreach (var key1 in score_summaries[key].Keys)
                 {
-                    if (score_summaries[key][key1] >= desired_fraction_of_max_score) 
-                   {
-                       Console.Write(key1 + " : " + score_summaries[key][key1] + "\n");
-                   }
+                    if (score_summaries[key][key1] >= threshold)
+                    {
+                        Console.Write(key1 + " : " + score_summaries[key][key1] + "\n");
+                    }
                 }
             }
         }
@@ -80,7 +81,8 @@ namespace SearchEngine
         static void Main(string[] args)
         {
             Dictionary<int, Dictionary<Field, double>> score_summaries = new Dictionary<int, Dictionary<Field, double>>();
-            
+            Uncertain<double> top_k = new Gaussian(5, 0.5);
+            Console.Write(top_k.SampledInference(10).Support());
             try
             {
                 data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
@@ -97,8 +99,7 @@ namespace SearchEngine
                     Console.Write("Building indexes done\n");
                     Console.Write("Machine " + machine + " performing search\n");
                     Search s = new Search();
-
-
+                   
                     TopDocs topDocs = s.performSearch("Allahabad Seattle", 5);
                     Console.Write("Results found: " + topDocs.TotalHits + "\n");
 
@@ -123,7 +124,6 @@ namespace SearchEngine
             catch (Exception e)
             {
                 Console.Write("Exception" + e.GetType());
-
             }
             Console.ReadKey();
         }
