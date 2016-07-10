@@ -140,9 +140,10 @@ namespace SearchEngine
                         lambda_mle = unique_normalized_score_reciprocals.Count / sum_of_score_reciprocals;
                         
                         // probability associated with picking a document with a reciprocal score S is then lambda.e^(-lambda.S)                        
+                        // the minimum value of the reciprocal of a score is 1. To make the probabilities more meaningful, the origin is shifted to the right by 1. 
                         foreach (var key in normalized_scores.Keys)
                         {                            
-                            document_probabilities.Add(key, lambda_mle*Math.Exp(-lambda_mle*(1/normalized_scores[key])));
+                            document_probabilities.Add(key, lambda_mle*Math.Exp(-lambda_mle*((1/normalized_scores[key])-1)));
                         }                        
                         score_summaries.Add(machine, normalized_scores);
                         score_probabilities.Add(machine, document_probabilities);
