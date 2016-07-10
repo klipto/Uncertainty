@@ -22,7 +22,7 @@ namespace SearchEngine
     {
         private static int number_of_machines = 3;
         // This is used by the  "central server" to prune the results of the other servers and return the final top-k.
-        private static double threshold = 0.005;
+        private static double threshold = 0.3;
         private static Dictionary<int, List<SampleData>> data_partitions_for_distributed_search = new Dictionary<int, List<SampleData>>();
 
         static Dictionary<int, List<SampleData>> CreateDataPartitions(List<SampleData> dataset, int number_of_machines)
@@ -71,7 +71,7 @@ namespace SearchEngine
                 {
                     if (score_probabilities[key][key1] >= threshold)
                     {
-                        Console.Write(key1 + " : " + score_probabilities[key][key1] + " : " + score_summaries[key][key1] + "\n");        
+                        Console.Write(key1 + " : " + score_probabilities[key][key1] + "\n");        
                     }
                                
                 }
@@ -113,6 +113,7 @@ namespace SearchEngine
                     {
                         Dictionary<Field, double> normalized_scores = new Dictionary<Field, double>();
                         Dictionary<Field, double> document_probabilities = new Dictionary<Field, double>();
+                        Dictionary<Field, double> best_document_probabilities = new Dictionary<Field, double>();
                         Console.Write("\nMachine " + machine + " building indexes\n");
                         Index indexer = new Index();
                         indexer.rebuildIndex(data_partition.Value);
@@ -127,7 +128,8 @@ namespace SearchEngine
                         {
                             Document doc = s.getDocument(hits[x].Doc);
                             double normalized_score = hits[x].Score / topDocs.MaxScore;
-                            double normalized_score_reciprocal = topDocs.MaxScore / hits[x].Score;
+                            // the minimum value of the reciprocal of a score is 1. To make the probabilities more meaningful, the origin is shifted to the right by 1. 
+                            double normalized_score_reciprocal = (topDocs.MaxScore / hits[x].Score)-1;                            
                             unique_normalized_score_reciprocals.Add(normalized_score_reciprocal);
                             sum_of_score_reciprocals = sum_of_score_reciprocals + normalized_score_reciprocal;
                             Console.Write(doc.GetField("Id") + " " + doc.GetField("Original title") + " " + doc.GetField("Normalized title") + " " + hits[x].Score);
@@ -138,13 +140,17 @@ namespace SearchEngine
                         }
 
                         lambda_mle = unique_normalized_score_reciprocals.Count / sum_of_score_reciprocals;
-                        
+                      
                         // probability associated with picking a document with a reciprocal score S is then lambda.e^(-lambda.S)                        
                         // the minimum value of the reciprocal of a score is 1. To make the probabilities more meaningful, the origin is shifted to the right by 1. 
                         foreach (var key in normalized_scores.Keys)
                         {                            
-                            document_probabilities.Add(key, lambda_mle*Math.Exp(-lambda_mle*((1/normalized_scores[key])-1)));
-                        }                        
+                            document_probabilities.Add(key, lambda_mle*Math.Exp(-lambda_mle*((1/normalized_scores[key])-1)));                           
+                        }
+                        foreach (var key in document_probabilities)
+                        {
+                            if(document_probabilities[key] >)
+                        }
                         score_summaries.Add(machine, normalized_scores);
                         score_probabilities.Add(machine, document_probabilities);
                         machine++;
