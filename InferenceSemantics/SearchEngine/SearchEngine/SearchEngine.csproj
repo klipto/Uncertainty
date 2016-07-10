@@ -48,6 +48,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DataParser.cs" />
     <Compile Include="SampleData.cs" />
     <Compile Include="Index.cs" />
     <Compile Include="SampleDataRepository.cs" />

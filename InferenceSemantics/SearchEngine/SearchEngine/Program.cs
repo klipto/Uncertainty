@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 using System.Threading.Tasks;
+
 using Microsoft.Research.Uncertain;
 using Microsoft.Research.Uncertain.Inference;
 
@@ -18,12 +20,10 @@ namespace SearchEngine
 {
     class Program
     {
-
         private static int number_of_machines = 3;
         // This is used by the  "central server" to prune the results of the other servers and return the final top-k.
-        private static double threshold = 0.7;
-        private static Dictionary<int, List<SampleData>> data_partitions_for_distributed_search =
-            new Dictionary<int, List<SampleData>>();
+        private static double threshold = 0.005;
+        private static Dictionary<int, List<SampleData>> data_partitions_for_distributed_search = new Dictionary<int, List<SampleData>>();
 
         static Dictionary<int, List<SampleData>> CreateDataPartitions(List<SampleData> dataset, int number_of_machines)
         {
@@ -57,75 +57,105 @@ namespace SearchEngine
                     partition.Add(dataset[x]);
                 }
                 index = index + machine_partition_size.Value;
-                partitions.Add(machine_partition_size.Key, partition);
+                partitions.Add(machine_partition_size.Key, partition);               
             }
             return partitions;
         }
 
-        public static void finalSearch(Dictionary<int, Dictionary<Field, double>> score_summaries)
+        public static void finalSearch(Dictionary<int, Dictionary<Field, double>> score_probabilities, Dictionary<int, Dictionary<Field, double>> score_summaries)
         {
-            foreach (var key in score_summaries.Keys)
+            Console.Write("Central server's output: \n");
+            foreach (var key in score_probabilities.Keys)
             {
-                foreach (var key1 in score_summaries[key].Keys)
+                foreach (var key1 in score_probabilities[key].Keys)
                 {
-                    if (score_summaries[key][key1] >= threshold)
+                    if (score_probabilities[key][key1] >= threshold)
                     {
-                        Console.Write(key1 + " : " + score_summaries[key][key1] + "\n");
+                        Console.Write(key1 + " : " + score_probabilities[key][key1] + " : " + score_summaries[key][key1] + "\n");        
                     }
+                               
                 }
-            }
+            }            
         }
 
         static void Main(string[] args)
         {
+            StreamReader datafile = new StreamReader(@"C:\Users\t-chnand\Desktop\Uncertainty\InferenceSemantics\SearchEngine\SearchEngine\dataset\Data1.txt");
+            DataParser.ParseDataSet(datafile);
             Dictionary<int, Dictionary<Field, double>> score_summaries = new Dictionary<int, Dictionary<Field, double>>();
-
+            Dictionary<int, Dictionary<Field, double>> score_probabilities = new Dictionary<int, Dictionary<Field, double>>();
             //trying out inference
-            Uncertain<double> top_k = new Gaussian(5, 0.5);
-            Uncertain<bool> test = new Bernoulli(0.5);
-            var list1 = test.Inference().Support().Take(5).ToList();
-            var list = top_k.SampledInference(10000).Support().Take(5).ToList();
-            foreach (var l in list) 
-            {
-                Console.Write(l + "\n");
-            }
-
+            //Uncertain<double> top_k = new Gaussian(5, 0.5);         
+            //var list = top_k.SampledInference(50).Support();
+            //int count = 1;
+            //foreach (var l in list) 
+            //{
+              //  Console.Write(count +" : " + l + "\n");
+              // count++; 
+            //}
             try
             {
                 data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
                 int machine = 1;
-
-                // distribute search to available servers
+                string query = "learning";
+                // distribute search to available servers --- indexing and searching are both distributed. 
                 foreach (var data_partition in data_partitions_for_distributed_search)
                 {
-                    Dictionary<Field, double> score_ratios = new Dictionary<Field, double>();
-                    Console.Write("Machine " + machine + " building indexes\n");
-                    Index indexer = new Index();
-                    indexer.rebuildIndex(data_partition.Value);
-                    Console.Write("Building indexes done\n");
-                    Console.Write("Machine " + machine + " performing search\n");
-                    Search s = new Search();                   
-                    TopDocs topDocs = s.performSearch("Allahabad Seattle", 5);
-                    Console.Write("Results found: " + topDocs.TotalHits + "\n");
-                    ScoreDoc[] hits = topDocs.ScoreDocs;
-                    for (int x = 0; x < hits.Length; x++)
+                    // f(x) = lambda*e^(-lambda*x) is the pdf of exponential distribution. We model the probability of picking a document
+                    // with a score x as an exponential distribution.
+                    // MLE of lambda for exponential distribution is the reciprocal of sample mean, where the sample is the reciprocals of the normalized scores generated by the servers.
+                    // smaller the value of the reciprocal, the larger the probability of picking it since the score is larger.
+                    double lambda_mle = 0.0;
+                    HashSet<double> unique_normalized_score_reciprocals = new HashSet<double>();
+                    string score_file = "scores" + machine.ToString() + ".txt";
+
+                    using (StreamWriter sw = new StreamWriter(score_file))
                     {
-                        Document doc = s.getDocument(hits[x].Doc);
-                        double score_ratio = hits[x].Score / topDocs.MaxScore;
-                        Console.Write(doc.GetField("Id") + " " + doc.GetField("Name") + " " + doc.GetField("Description") + " " + hits[x].Score);
-                        Console.Write("\n");
-                        score_ratios.Add(doc.GetField("Id"), score_ratio);
+                        Dictionary<Field, double> normalized_scores = new Dictionary<Field, double>();
+                        Dictionary<Field, double> document_probabilities = new Dictionary<Field, double>();
+                        Console.Write("\nMachine " + machine + " building indexes\n");
+                        Index indexer = new Index();
+                        indexer.rebuildIndex(data_partition.Value);
+                        Console.Write("Building indexes done\n");
+                        Console.Write("Machine " + machine + " performing search\n");
+                        Search s = new Search();
+                        TopDocs topDocs = s.performSearch(query, data_partition.Value.Count);                       
+                        Console.Write("Results found: " + topDocs.TotalHits + "\n");
+                        ScoreDoc[] hits = topDocs.ScoreDocs;
+                        double sum_of_score_reciprocals = 0.0;
+                        for (int x = 0; x < hits.Length; x++)
+                        {
+                            Document doc = s.getDocument(hits[x].Doc);
+                            double normalized_score = hits[x].Score / topDocs.MaxScore;
+                            double normalized_score_reciprocal = topDocs.MaxScore / hits[x].Score;
+                            unique_normalized_score_reciprocals.Add(normalized_score_reciprocal);
+                            sum_of_score_reciprocals = sum_of_score_reciprocals + normalized_score_reciprocal;
+                            Console.Write(doc.GetField("Id") + " " + doc.GetField("Original title") + " " + doc.GetField("Normalized title") + " " + hits[x].Score);
+                            Console.Write("\n");
+                            normalized_scores.Add(doc.GetField("Id"), normalized_score);
+                            sw.Write(normalized_score);
+                            sw.Write(Environment.NewLine);
+                        }
+
+                        lambda_mle = unique_normalized_score_reciprocals.Count / sum_of_score_reciprocals;
+                        
+                        // probability associated with picking a document with a reciprocal score S is then lambda.e^(-lambda.S)                        
+                        foreach (var key in normalized_scores.Keys)
+                        {                            
+                            document_probabilities.Add(key, lambda_mle*Math.Exp(-lambda_mle*(1/normalized_scores[key])));
+                        }                        
+                        score_summaries.Add(machine, normalized_scores);
+                        score_probabilities.Add(machine, document_probabilities);
+                        machine++;
+                        Console.Write("Finished\n");
                     }
-                    score_summaries.Add(machine, score_ratios);
-                    machine++;
-                    Console.Write("Finished\n");
                 }
                 // final search in the "central server" using results from the other servers
-                finalSearch(score_summaries);
+                finalSearch(score_probabilities, score_summaries);
             }
             catch (Exception e)
             {
-                Console.Write("Exception" + e.GetType());
+                Console.Write("Search failed: " + e.GetType());
             }
             Console.ReadKey();
         }

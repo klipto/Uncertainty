@@ -45,21 +45,29 @@ namespace SearchEngine
 
         public void indexSampleData(SampleData sampleData)
         {
-            Console.Write("Indexing sample data\n");
+            Console.Write("Indexing sample data\n");            
             IndexWriter writer = getIndexWriter(true);
-            Document doc = new Document();
-            doc.Add(new Field("Id", sampleData.Id.ToString(), Field.Store.YES, Field.Index.NOT_ANALYZED));
-            doc.Add(new Field("Name", sampleData.Name.ToString(), Field.Store.YES, Field.Index.ANALYZED));
-            doc.Add(new Field("Description", sampleData.Description.ToString(), Field.Store.YES, Field.Index.ANALYZED));
-            string searchableText=sampleData.Id + " " + sampleData.Name + " " + sampleData.Description;
+            Document doc = new Document();        
+            doc.Add(new Field("Id", sampleData.Id.ToString(), Field.Store.YES, Field.Index.ANALYZED));
+            doc.Add(new Field("Original title", sampleData.OriginalTitle.ToString(), Field.Store.YES, Field.Index.ANALYZED));
+            doc.Add(new Field("Normalized title", sampleData.NormalizedTitle.ToString(), Field.Store.YES, Field.Index.ANALYZED));
+            doc.Add(new Field("Year", sampleData.Year.ToString(), Field.Store.YES, Field.Index.ANALYZED));
+            //doc.Add(new Field("Date", sampleData.Date.ToString(), Field.Store.YES, Field.Index.ANALYZED));
+            //doc.Add(new Field("DOI", sampleData.DOI.ToString(), Field.Store.YES, Field.Index.ANALYZED));
+            //doc.Add(new Field("Original venue", sampleData.OriginalVenue.ToString(), Field.Store.YES, Field.Index.ANALYZED));
+            //doc.Add(new Field("Normalized venue",sampleData.NormalizedVenue.ToString(), Field.Store.YES, Field.Index.ANALYZED));
+            //doc.Add(new Field("Journal Id", sampleData.JournalID.ToString(), Field.Store.YES, Field.Index.ANALYZED));
+            //doc.Add(new Field("Conference Id",sampleData.ConferenceID.ToString(), Field.Store.YES, Field.Index.ANALYZED));
+            //doc.Add(new Field("Paper rank",sampleData.PaperRank.ToString(), Field.Store.YES, Field.Index.ANALYZED));
+            string searchableText=sampleData.Id + " " + sampleData.OriginalTitle + " " + sampleData.NormalizedTitle + " "+ sampleData.Year +" ";
             doc.Add(new Field("content",searchableText, Field.Store.NO, Field.Index.ANALYZED));
             writer.AddDocument(doc);
         }
 
         public void rebuildIndex(List<SampleData> dataset)
-        {         
+        {            
             foreach (SampleData data in dataset)
-            {
+            {               
                 indexSampleData(data);
             }
             closeIndexWriter();
