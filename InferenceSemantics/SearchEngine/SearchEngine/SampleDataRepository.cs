@@ -19,14 +19,7 @@ namespace SearchEngine
         }
         public static void addData(SampleData data)
         {
-            //try
-            //{
-                data_list.Add(data);
-            //}
-            //catch(NullReferenceException e) 
-            //{
-              //  Console.Write("cannot add data to repository: "+e.GetType()+"\n");
-            //}
+            data_list.Add(data);          
         }
     }
 }
