@@ -51,15 +51,9 @@ namespace SearchEngine
             doc.Add(new Field("Id", sampleData.Id.ToString(), Field.Store.YES, Field.Index.ANALYZED));
             doc.Add(new Field("Original title", sampleData.OriginalTitle.ToString(), Field.Store.YES, Field.Index.ANALYZED));
             doc.Add(new Field("Normalized title", sampleData.NormalizedTitle.ToString(), Field.Store.YES, Field.Index.ANALYZED));
-            doc.Add(new Field("Year", sampleData.Year.ToString(), Field.Store.YES, Field.Index.ANALYZED));
-            //doc.Add(new Field("Date", sampleData.Date.ToString(), Field.Store.YES, Field.Index.ANALYZED));
-            //doc.Add(new Field("DOI", sampleData.DOI.ToString(), Field.Store.YES, Field.Index.ANALYZED));
-            //doc.Add(new Field("Original venue", sampleData.OriginalVenue.ToString(), Field.Store.YES, Field.Index.ANALYZED));
-            //doc.Add(new Field("Normalized venue",sampleData.NormalizedVenue.ToString(), Field.Store.YES, Field.Index.ANALYZED));
-            //doc.Add(new Field("Journal Id", sampleData.JournalID.ToString(), Field.Store.YES, Field.Index.ANALYZED));
-            //doc.Add(new Field("Conference Id",sampleData.ConferenceID.ToString(), Field.Store.YES, Field.Index.ANALYZED));
-            //doc.Add(new Field("Paper rank",sampleData.PaperRank.ToString(), Field.Store.YES, Field.Index.ANALYZED));
-            string searchableText=sampleData.Id + " " + sampleData.OriginalTitle + " " + sampleData.NormalizedTitle + " "+ sampleData.Year +" ";
+            doc.Add(new Field("Year", sampleData.Year.ToString(), Field.Store.YES, Field.Index.ANALYZED));            
+            string searchableText=sampleData.Id + " " + sampleData.OriginalTitle + " " + sampleData.NormalizedTitle 
+                + " "+ sampleData.Year +" ";
             doc.Add(new Field("content",searchableText, Field.Store.NO, Field.Index.ANALYZED));
             writer.AddDocument(doc);
         }

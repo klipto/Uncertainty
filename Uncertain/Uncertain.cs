@@ -51,7 +51,7 @@ namespace Microsoft.Research.Uncertain
             return this.GetSupport();
         }
 
-        internal abstract void Accept(IUncertainVisitor visitor);
+        public abstract void Accept(IUncertainVisitor visitor);
 
         private static bool? CheckForNull(Uncertain<T> lhs, Uncertain<T> rhs)
         {

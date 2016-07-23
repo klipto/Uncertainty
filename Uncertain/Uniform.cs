@@ -44,7 +44,6 @@ namespace Microsoft.Research.Uncertain
                 throw new Exception("Min >= Max");
         }
 
-
         public override double Score(T inp)
         {
             dynamic t = inp;

@@ -75,7 +75,6 @@ namespace Microsoft.Research.Uncertain
                 if (StructuralComparisons.StructuralEqualityComparer.Equals(a.Erp, b.Erp) == false)
                     return false;
             }
-
             return true;
         }
 
@@ -140,6 +139,12 @@ namespace Microsoft.Research.Uncertain
         }
 
         public void Visit<TSource, TCollection, TResult>(SelectMany<TSource, TCollection, TResult> selectmany)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public void Visit<T>(Inference<T> inference)
         {
             throw new NotImplementedException();
         }
@@ -383,13 +388,13 @@ namespace Microsoft.Research.Uncertain
             selectmany.source.Accept(this);
             var a = (Weighted<TSource>)this.sample;
 
-            var b = selectmany.CollectionSelector(a.Value);
+            var b = (selectmany.CollectionSelector.Compile())(a.Value);
 
             this.stack = Tuple.Create(stack.Item1, stack.Item2 + 1, stack.Item3);
             b.Accept(this);
             var c = (Weighted<TCollection>)this.sample;
 
-            var result = selectmany.ResultSelector(a.Value, c.Value);
+            var result = (selectmany.ResultSelector.Compile())(a.Value, c.Value);
             result.Probability *= (a.Probability * c.Probability);
             this.sample = result;
         }
@@ -397,6 +402,12 @@ namespace Microsoft.Research.Uncertain
         IEnumerator IEnumerable.GetEnumerator()
         {
             return this.GetEnumerator();
+        }
+
+
+        public void Visit<T>(Inference<T> inference)
+        {
+            throw new NotImplementedException();
         }
     }
 }

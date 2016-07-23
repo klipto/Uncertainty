@@ -86,7 +86,7 @@ namespace Microsoft.Research.Uncertain
         }
 
         public void Visit<TSource, TResult>(Select<TSource, TResult> select)
-        {
+        {            
             select.source.Accept(this);
             var a = (Weighted<TSource>)this.sample;
             var b = select.Projection(a.Value);
@@ -98,13 +98,19 @@ namespace Microsoft.Research.Uncertain
             selectmany.source.Accept(this);
             var a = (Weighted<TSource>)this.sample;
 
-            var b = selectmany.CollectionSelector(a.Value);
+            var b = (selectmany.CollectionSelector.Compile())(a.Value);
             b.Accept(this);
             var c = (Weighted<TCollection>)this.sample;
 
-            var result = selectmany.ResultSelector(a.Value, c.Value);
+            var result = (selectmany.ResultSelector.Compile())(a.Value, c.Value);
             result.Probability *= (a.Probability * c.Probability);
             this.sample = result;
+        }
+
+
+        public void Visit<T>(Inference<T> inference)
+        {
+            throw new NotImplementedException();
         }
     }
 }

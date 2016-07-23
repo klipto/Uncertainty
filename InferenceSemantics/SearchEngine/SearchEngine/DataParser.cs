@@ -51,8 +51,7 @@ namespace SearchEngine
                     Console.Write(e.GetType()+"\n"); 
                 }
                 SampleDataRepository.addData(data);
-            }
-          
+            }          
         }
     }
 }

@@ -63,7 +63,7 @@ namespace Microsoft.Research.Uncertain
 
         public abstract double Score(T t);
 
-        internal override void Accept(IUncertainVisitor visitor)
+        public override void Accept(IUncertainVisitor visitor)
         {
             visitor.Visit(this);
         }
