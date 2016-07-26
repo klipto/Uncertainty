@@ -54,7 +54,7 @@
     <Compile Include="Index.cs" />
     <Compile Include="SampleDataRepository.cs" />
     <Compile Include="Search.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="SearchEngineImpl.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

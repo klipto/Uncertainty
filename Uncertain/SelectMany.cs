@@ -39,7 +39,7 @@ namespace Microsoft.Research.Uncertain
         public Expression<Func<TSource, Uncertain<TCollection>>> CollectionSelector { get; set; }
 
         public Expression<Func<TSource, TCollection, Weighted<TResult>>> ResultSelector { get;  set; }
-        internal SelectMany(
+        public  SelectMany(
             Uncertain<TSource> source,
             Expression<Func<TSource, Uncertain<TCollection>>> collectionSelector,
             Expression<Func<TSource, TCollection, Weighted<TResult>>> resultSelector)

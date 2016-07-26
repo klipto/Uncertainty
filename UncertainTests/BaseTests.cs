@@ -285,8 +285,8 @@ namespace UncertainTests
                                 let score = rand.NextDouble()
                                 select new { documentIndex, score };
 
-                var tmp = from bias in new FiniteEnumeration<double>(new[] { -0.01, -0.5, 0, 0.1, 0.05 })
-                          //Gaussian(0, 1) //new[] { -0.01, -0.5, 0, 0.1, 0.05 })
+                var tmp = from bias in new //FiniteEnumeration<double>(new[] { -0.01, -0.5, 0, 0.1, 0.05 })
+                          Gaussian(0, 1) //new[] { -0.01, -0.5, 0, 0.1, 0.05 })
                           let docs = from document in documents
                                      let doc = new Document { rank = document.documentIndex, machine = machineIndex, score = document.score + bias }
                                      orderby doc.score descending
