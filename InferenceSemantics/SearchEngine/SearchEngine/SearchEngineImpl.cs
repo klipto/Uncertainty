@@ -120,8 +120,8 @@ namespace SearchEngine
                 Console.Write(v.field + " : " + v.picking_probability + "\n");
             }
             Console.Write("total results with uncertainty: " + result_set.Count + "\n");
-            Console.Write("\n\nCentral server's output: \n");            
-            int c = 0;            
+            Console.Write("\n\nCentral server's output: \n");
+            int c = 0;
             foreach (var val in score_probabilities.Values)
             {
                 foreach (var k in val)
@@ -136,8 +136,8 @@ namespace SearchEngine
 
         public static HashSet<Uncertain<ChosenDocument[]>> distributedSearch(string query, int topk, Dictionary<int, Dictionary<Field, double>> score_summaries, Dictionary<int, Dictionary<Field, double>> score_probabilities)
         {
-            HashSet<Uncertain<ChosenDocument[]>> uncertain_documents = new HashSet<Uncertain<ChosenDocument[]>>();            
-            int machine = 1;            
+            HashSet<Uncertain<ChosenDocument[]>> uncertain_documents = new HashSet<Uncertain<ChosenDocument[]>>();
+            int machine = 1;
             // distribute search to available servers --- indexing and searching are both distributed. 
             foreach (var data_partition in data_partitions_for_distributed_search)
             {
@@ -190,16 +190,16 @@ namespace SearchEngine
                     document_probabilities.OrderByDescending(entry => entry.Value);
 
                     Uncertain<ChosenDocument[]> selected_documents = from exponential in exp
-                                             let docs = from entry in document_probabilities
-                                                        let chosen_doc = new ChosenDocument { field = entry.Key, picking_probability = entry.Value, exponential_bound = exponential }
-                                                        where entry.Value < exponential
-                                                        orderby chosen_doc.picking_probability descending
-                                                        select chosen_doc
-                                             select docs.ToArray();
-                    
+                                                                     let docs = from entry in document_probabilities
+                                                                                let chosen_doc = new ChosenDocument { field = entry.Key, picking_probability = entry.Value, exponential_bound = exponential }
+                                                                                where entry.Value < exponential
+                                                                                orderby chosen_doc.picking_probability descending
+                                                                                select chosen_doc
+                                                                     select docs.ToArray();
+
                     score_summaries.Add(machine, normalized_scores);
                     score_probabilities.Add(machine, document_probabilities);
-                                   
+
                     uncertain_documents.Add(selected_documents.SampledInference(topk));
                     machine++;
                     Console.Write("Finished\n");
@@ -216,50 +216,166 @@ namespace SearchEngine
             return a * b;
         }
 
-
-
-        public static void Main(string[] args)
+        private static int Factorial(int n)
         {
-           
-            Func<int,int,int,Uncertain<double>> F = (k1, k2, k3) =>
-                from a in new Gaussian(0, 1).SampledInference(k1, null)
-                from b in new Gaussian(0, 1).SampledInference(k2, null)
-                from c in new Gaussian(0, 1).SampledInference(k3, null)
-                select a + b + c;
-
-
-            var tmpp = Enumerable.Range(20, 200).Select(i => new Weighted<int> { Value = i, Probability = 200 - i });
-            var sum = tmpp.Select(i => i.Probability).Sum();
-            tmpp = tmpp.Select(i => new Weighted<int> { Value = i.Value, Probability = i.Probability / sum });
-
-            var program =
-                from k1 in new FiniteEnumeration<int>(tmpp.ToList())
-                from k2 in new FiniteEnumeration<int>(tmpp.ToList())
-                from k3 in new FiniteEnumeration<int>(tmpp.ToList())
-                from yhat in F(k1, k2, k3)
-                let prob = Score(yhat, 0.0, 3.0)
-                select new Weighted<Tuple<int, int, int, double>> { Value = Tuple.Create(k1, k2, k3, yhat * yhat), Probability = prob };
-
-            var sampler = new MarkovChainMonteCarloSampler<Tuple<int, int, int, double>>(program);
-
-            var best = double.NegativeInfinity;
-            Tuple<int, int, int, double> bestItem = null;
-            var count = 0;
-            foreach(var item in sampler.Skip(1000))
+            if (n <= 1)
+                return 1;
+            else
             {
-                if (item.Probability > best)
-                {
-                    best = item.Probability;
-                    bestItem = item.Value;
-                }
+                return n * Factorial(n - 1);
+            }
+        }
+        private static double BinomialScore(int n, int r, double p)
+        {
+            var combination = Factorial(n) / (Factorial(r) * Factorial(n - r));
+            return combination*Math.Pow(p, r)*Math.Pow((1-p), (n-r));
+        }
 
-                if (count++ % 10000 == 0)
-                {
-                    Console.WriteLine(String.Format("{0} {1}", best, bestItem.Item4));
-                }
+        public struct TmpStruct : IEqualityComparer<TmpStruct>
+        {
+            public int k1, k2;
+            public double yhatSqrd;
+
+            public bool Equals(TmpStruct x, TmpStruct y)
+            {
+                return x.k1 == y.k1 && x.k2 == y.k2;
             }
 
-            //var tmp = program.SampledInference(10000).Support().OrderByDescending(i => i.Probability).Take(10).ToList();
+            public int GetHashCode(TmpStruct obj)
+            {
+                return obj.k1.GetHashCode() ^ obj.k2.GetHashCode();
+            }
+        }
+
+        public class MyTupleComparer : IComparer<Tuple<int, int>>
+        {
+            public int Compare(Tuple<int, int> x, Tuple<int, int> y)
+            {
+                return ((IComparable)x).CompareTo(y);
+            }
+        }
+        public static void Main(string[] args)
+        {           
+            //Func<int, int, int, Uncertain<int>> F_discrete = (k1, k2, k3) =>
+            //    from a in new Flip(0.5).SampledInference(k1, null)
+            //    from b in new Flip(0.5).SampledInference(k2, null)
+            //    from c in new Flip(0.5).SampledInference(k3, null)
+            //    select Convert.ToInt32(a) + Convert.ToInt32(b) + Convert.ToInt32(c);           
+
+            //var program_discrete =
+            //    from k1 in new FiniteEnumeration<int>(new[] {1})
+            //    from k2 in new FiniteEnumeration<int>(new[] {1})
+            //    from k3 in new FiniteEnumeration<int>(new[] {1})
+            //    from binomial in F_discrete(k1, k2, k3)
+            //    let prob = BinomialScore(3, binomial, 0.5)
+            //    select new Weighted<Tuple<int, int, int, int>> { Value = Tuple.Create(k1, k2, k3, binomial), Probability = prob };
+            //var inference_discrete = program_discrete.SampledInference(100000).Support().ToList();
+            
+            //string discrete_data = "discrete_data.txt";
+            //using (StreamWriter sw = new StreamWriter(discrete_data))
+            //{
+            //    foreach (var v in inference_discrete)
+            //    {
+            //        sw.WriteLine(v.Value + " " + v.Probability);
+            //    }
+            //}
+    
+            //var program_discrete1 =
+            //    from k1 in new FiniteEnumeration<int>(new[] { 500 })
+            //    from k2 in new FiniteEnumeration<int>(new[] { 500 })
+            //    from k3 in new FiniteEnumeration<int>(new[] { 500 })
+            //    from binomial in F_discrete(k1, k2, k3)
+            //    let prob = BinomialScore(3, binomial, 0.5)
+            //    select new Weighted<Tuple<int, int, int, int>> { Value = Tuple.Create(k1, k2, k3, binomial), Probability = prob };
+
+            //var inference_discrete1 = program_discrete1.SampledInference(1000).Support().ToList();
+            //string discrete_data1 = "discrete_data1.txt";
+            //using (StreamWriter sw = new StreamWriter(discrete_data1))
+            //{
+            //    foreach (var v in inference_discrete1)
+            //    {
+            //        sw.WriteLine(v.Value + " " + v.Probability);
+            //    }
+            //}
+            
+            Func<int,int,Uncertain<double>> F = (k1, k2) =>            
+                from a in new Gaussian(1, 1).SampledInference(k1, null)
+                from b in new Gaussian(1, 1).SampledInference(k2, null)                
+                select a + b;
+            
+            //var tmpp = Enumerable.Range(20, 5).Select(i => new Weighted<int> { Value = i, Probability = 200 - i });
+            //var sum = tmpp.Select(i => i.Probability).Sum();
+            //tmpp = tmpp.Select(i => new Weighted<int> { Value = i.Value, Probability = i.Probability / sum });           
+
+            //Func<int, int, double, double, double, bool> correctness_checker = (topk1, topk2, yhat, mean, stddev) =>
+            //{
+            //    if ((yhat - mean)*(yhat-mean) <=  9*stddev*stddev)
+            //    {
+            //        return true;              
+            //    }                   
+            //   return false;    
+            //};
+
+            var program =
+                from k1 in new FiniteEnumeration<int>(new[] { 100 })
+                let a = new Gaussian(1, 1).SampledInference(k1, null)
+
+                from k2 in new FiniteEnumeration<int>(new[] { 100 })
+                let b = new Gaussian(1, 1).SampledInference(k2, null)
+
+                let allpaths = (from a0 in a
+                                from b0 in b
+                                let yhat = a0 + b0
+                                let prob = Score(yhat, 2.0, 2.0)
+                                select new Weighted<double>(yhat, prob)).Inference().Support()
+
+                // in the limit of k1,k2 mean should be 2.0
+                //let mean = allpaths.Select(i => i.Probability * i.Value).Average()
+                // in the limit of k1,k2 mean should be 2.0
+                //let var  = allpaths.Select(i => (mean - i.Value))
+                select allpaths;
+                //select new Weighted<Tuple<int, int, double>> { Value = Tuple.Create(k1, k2, yhat), Probability = prob };
+
+            var tmp = program.SampledInference(100000).Support().OrderBy(i => i.Value).ToList();
+            string datafile2 = "correct_inference.txt";
+            using (StreamWriter sw = new StreamWriter(datafile2))
+            {
+                foreach (var t in tmp)
+                {
+                    sw.Write(t.Value + " " + t.Probability);
+                    //sw.Write(t.Value.Item1 + " " + t.Value.Item2 + " " + t.Value.Item3);
+                    sw.Write(Environment.NewLine);
+                }
+            }
+            
+            // this data does not make much sense.
+            //string datafile3 = "contour_data1.txt";
+            //using (StreamWriter sw = new StreamWriter(datafile3))
+            //{
+            //    foreach (var t in tmp)
+            //    {
+            //        sw.Write(t.Value.Item1 + " " + t.Value.Item2 + " " + t.Probability);
+            //        sw.Write(Environment.NewLine);
+            //    }
+            //}   
+
+            var program1 =
+                from k1 in new FiniteEnumeration<int>(Enumerable.Range(200, 10).ToList())
+                from k2 in new FiniteEnumeration<int>(Enumerable.Range(200, 10).ToList())
+                let tmp1 = F(k1, k2)
+                from yhat in tmp1
+                let prob = Score(yhat, 2.0, 2.0)
+                select new Weighted<Tuple<int, int, double>> { Value = Tuple.Create(k1, k2, yhat), Probability = prob };
+
+            var sampler = new MarkovChainMonteCarloSampler<Tuple<int, int, double>>(program1);
+
+            using (StreamWriter sw = new StreamWriter("prob-vs-yhatsq.txt"))
+            {
+                foreach (var item in sampler.Skip(10000).Take(100000))
+                {
+                    sw.WriteLine(String.Format("{0} {1}", item.Value.Item3, item.Probability));
+                }
+            }              
 
             StreamReader datafile = new StreamReader(@"C:\Users\t-chnand\Desktop\Uncertainty\InferenceSemantics\SearchEngine\SearchEngine\dataset\Data1.txt");
             DataParser.ParseDataSet(datafile);
