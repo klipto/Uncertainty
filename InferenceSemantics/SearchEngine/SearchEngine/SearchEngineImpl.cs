@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 using Microsoft.Research.Uncertain;
 using Microsoft.Research.Uncertain.Inference;
 
+using MathNet.Numerics.Statistics;
+using MathNet.Numerics.Distributions;
+
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
@@ -179,7 +182,7 @@ namespace SearchEngine
                         sw.Write(Environment.NewLine);
                     }
                     lambda_mle = unique_normalized_score_reciprocals.Count / sum_of_score_reciprocals;
-                    var exp = new Exponential(lambda_mle);
+                    var exp = new Microsoft.Research.Uncertain.Exponential(lambda_mle);
 
                     // probability associated with picking a document with a reciprocal score S is then lambda.e^(-lambda.S)                        
                     // the minimum value of the reciprocal of a score is 1. To make the probabilities more meaningful, the origin is shifted to the right by 1. 
@@ -216,7 +219,7 @@ namespace SearchEngine
             return a * b;
         }
 
-        private static int Factorial(int n)
+        private static long Factorial(long n)
         {
             if (n <= 1)
                 return 1;
@@ -228,7 +231,56 @@ namespace SearchEngine
         private static double BinomialScore(int n, int r, double p)
         {
             var combination = Factorial(n) / (Factorial(r) * Factorial(n - r));
-            return combination*Math.Pow(p, r)*Math.Pow((1-p), (n-r));
+            return combination * Math.Pow(p, r) * Math.Pow((1 - p), (n - r));
+        }
+
+        private static double T_Score(double t, long dof)
+        {
+            double numerator=1.0, denominator=1.0;
+            double ret = 0.0;
+            double factor = Math.Pow((1 + (Math.Pow(t, 2) / dof)), (-(dof + 1) / 2));
+            if (dof <= 3)
+            {
+                if (dof == 1) 
+                    ret= 1/(Math.PI*(1+Math.Pow(t,2)));
+                if(dof == 2)
+                    ret= 1/(Math.Pow((2+Math.Pow(t,2)),3/2));
+                if (dof == 3)
+                    ret= 6*Math.Sqrt(3)/(Math.PI*Math.Pow((3+Math.Pow(t,2)),2));
+                return ret;
+            }
+            else
+            {
+                if (dof % 2 == 0)
+                {
+                    for (int x = 3; x <= dof - 1; x += 2)
+                    {
+                        numerator = numerator * x;
+                    }
+                    for (int y = 2; y <= dof - 2; y += 2)
+                    {
+                        denominator = denominator * y;
+                    }
+                    ret= factor * numerator / (denominator * 2 * Math.Sqrt(dof));
+                }
+                else
+                {
+                    for (int x = 3; x <= dof - 2; x += 2)
+                    {
+                        denominator = denominator * x;
+                    }
+                    for (int y = 2; y <= dof - 1; y += 2)
+                    {
+                        numerator = numerator * y;
+                    }
+                    ret= factor * numerator / (denominator * Math.PI * Math.Sqrt(dof));
+                }
+                return ret;
+            }            
+            //long f1 = Factorial(dof - 1);
+            //long f2 = Factorial(dof - 2);
+            //double numerator = Math.PI*Factorial(f1)/Math.Pow(2, dof/2);
+            //double denominator = Factorial(f2)*Math.Sqrt(Math.PI) * Math.Sqrt(dof*Math.PI)/Math.Pow(2, ((dof-1)/2));                     
         }
 
         public struct TmpStruct : IEqualityComparer<TmpStruct>
@@ -255,135 +307,92 @@ namespace SearchEngine
             }
         }
         public static void Main(string[] args)
-        {           
-            //Func<int, int, int, Uncertain<int>> F_discrete = (k1, k2, k3) =>
-            //    from a in new Flip(0.5).SampledInference(k1, null)
-            //    from b in new Flip(0.5).SampledInference(k2, null)
-            //    from c in new Flip(0.5).SampledInference(k3, null)
-            //    select Convert.ToInt32(a) + Convert.ToInt32(b) + Convert.ToInt32(c);           
+        {
+           Func<int, Uncertain<double>> F = (k1) =>
+                from a in new Gaussian(0, 1).SampledInference(k1, null)
+                select a;
 
-            //var program_discrete =
-            //    from k1 in new FiniteEnumeration<int>(new[] {1})
-            //    from k2 in new FiniteEnumeration<int>(new[] {1})
-            //    from k3 in new FiniteEnumeration<int>(new[] {1})
-            //    from binomial in F_discrete(k1, k2, k3)
-            //    let prob = BinomialScore(3, binomial, 0.5)
-            //    select new Weighted<Tuple<int, int, int, int>> { Value = Tuple.Create(k1, k2, k3, binomial), Probability = prob };
-            //var inference_discrete = program_discrete.SampledInference(100000).Support().ToList();
-            
-            //string discrete_data = "discrete_data.txt";
-            //using (StreamWriter sw = new StreamWriter(discrete_data))
-            //{
-            //    foreach (var v in inference_discrete)
-            //    {
-            //        sw.WriteLine(v.Value + " " + v.Probability);
-            //    }
-            //}
-    
-            //var program_discrete1 =
-            //    from k1 in new FiniteEnumeration<int>(new[] { 500 })
-            //    from k2 in new FiniteEnumeration<int>(new[] { 500 })
-            //    from k3 in new FiniteEnumeration<int>(new[] { 500 })
-            //    from binomial in F_discrete(k1, k2, k3)
-            //    let prob = BinomialScore(3, binomial, 0.5)
-            //    select new Weighted<Tuple<int, int, int, int>> { Value = Tuple.Create(k1, k2, k3, binomial), Probability = prob };
+           var single_gaussian =
+                   from k1 in new FiniteEnumeration<int>(new[] { 5 })
+                   let mean = 0
+                   let variance = 1
+                   let a = F(k1)
+                   let all_values = a.Inference().Support()
+                   let sample_mean = all_values.Select(i => i.Probability * i.Value).Sum()
+                   let sample_variance = all_values.Select(i => Math.Pow((i.Value - sample_mean), 2) * i.Probability).Sum()
+                   let statistic1 = Math.Sqrt(k1) * (sample_mean - mean) / Math.Sqrt(sample_variance) // t-distribution with (k1-1) dof.
+                   let statistic2 = (k1 - 1) * sample_variance / variance
+                   select Tuple.Create(statistic1, statistic2);
 
-            //var inference_discrete1 = program_discrete1.SampledInference(1000).Support().ToList();
-            //string discrete_data1 = "discrete_data1.txt";
-            //using (StreamWriter sw = new StreamWriter(discrete_data1))
-            //{
-            //    foreach (var v in inference_discrete1)
-            //    {
-            //        sw.WriteLine(v.Value + " " + v.Probability);
-            //    }
-            //}
-            
-            Func<int,int,Uncertain<double>> F = (k1, k2) =>            
-                from a in new Gaussian(1, 1).SampledInference(k1, null)
-                from b in new Gaussian(1, 1).SampledInference(k2, null)                
-                select a + b;
-            
-            //var tmpp = Enumerable.Range(20, 5).Select(i => new Weighted<int> { Value = i, Probability = 200 - i });
-            //var sum = tmpp.Select(i => i.Probability).Sum();
-            //tmpp = tmpp.Select(i => new Weighted<int> { Value = i.Value, Probability = i.Probability / sum });           
+           var tempp = single_gaussian.SampledInference(100000).Support().OrderByDescending(i => i.Probability).ToList();
 
-            //Func<int, int, double, double, double, bool> correctness_checker = (topk1, topk2, yhat, mean, stddev) =>
-            //{
-            //    if ((yhat - mean)*(yhat-mean) <=  9*stddev*stddev)
-            //    {
-            //        return true;              
-            //    }                   
-            //   return false;    
-            //};
-
+           //var v = 
+           string set_file = "single_gaussian.txt";
+           using (StreamWriter sw = new StreamWriter(set_file))
+           {
+               foreach (var t in tempp)
+               {
+                   sw.WriteLine(t.Value + " " + t.Probability);
+               }
+           }
+           return;
             var program =
-                from k1 in new FiniteEnumeration<int>(new[] { 100 })
-                let a = new Gaussian(1, 1).SampledInference(k1, null)
-
-                from k2 in new FiniteEnumeration<int>(new[] { 100 })
-                let b = new Gaussian(1, 1).SampledInference(k2, null)
-
-                let allpaths = (from a0 in a
-                                from b0 in b
-                                let yhat = a0 + b0
-                                let prob = Score(yhat, 2.0, 2.0)
-                                select new Weighted<double>(yhat, prob)).Inference().Support()
-
-                // in the limit of k1,k2 mean should be 2.0
-                //let mean = allpaths.Select(i => i.Probability * i.Value).Average()
-                // in the limit of k1,k2 mean should be 2.0
-                //let var  = allpaths.Select(i => (mean - i.Value))
-                select allpaths;
-                //select new Weighted<Tuple<int, int, double>> { Value = Tuple.Create(k1, k2, yhat), Probability = prob };
-
-            var tmp = program.SampledInference(100000).Support().OrderBy(i => i.Value).ToList();
+               from k1 in new FiniteEnumeration<int>(new[] {5, 10, 50, 100})
+               from k2 in new FiniteEnumeration<int>(new[] {5, 10, 50, 100})
+               let a = F(k1)
+               let b = F(k2)
+               let allpaths = (from a0 in a
+                               from b0 in b
+                               let yhat = a0 + b0
+                               let prob = Score(yhat, 0, 2)
+                               select new Weighted<double>(yhat, prob)).Inference().Support()
+               let weighted_sample_mean = allpaths.Select(i => i.Probability * i.Value).Sum()
+               let weighted_sample_variance = allpaths.Select(i => Math.Pow((i.Value - weighted_sample_mean), 2) * i.Probability).Sum()
+               let SEM = Math.Sqrt(weighted_sample_variance / (k1 * k2))               
+               let t_variate = (weighted_sample_mean - 0) / SEM // this has a T-distribution with (k1*k2-1) DOF. 
+               let SEM_prob = StudentT.PDF(0,1,(k1*k2)-1, t_variate)                                   
+               select new Weighted<Tuple<int, int, double>> {Value = Tuple.Create(k1, k2, t_variate), Probability = SEM_prob}; 
+            var tmp = program.Inference().Support().OrderByDescending(i => i.Probability).ToList();         
+            
+            string se_file = "standard_error.txt";
+            using (StreamWriter sw = new StreamWriter(se_file))
+            {
+                foreach (var t in tmp)
+                {
+                    sw.WriteLine(t.Value.Item3 + " " + t.Probability);
+                }
+            }                     
             string datafile2 = "correct_inference.txt";
             using (StreamWriter sw = new StreamWriter(datafile2))
             {
                 foreach (var t in tmp)
                 {
-                    sw.Write(t.Value + " " + t.Probability);
-                    //sw.Write(t.Value.Item1 + " " + t.Value.Item2 + " " + t.Value.Item3);
-                    sw.Write(Environment.NewLine);
+                    Console.Write(t.Value + " "+ t.Probability);
+                    sw.WriteLine(t.Value + " " + t.Probability);
                 }
             }
-            
-            // this data does not make much sense.
-            //string datafile3 = "contour_data1.txt";
-            //using (StreamWriter sw = new StreamWriter(datafile3))
+            //var program1 =
+            //    from k1 in new FiniteEnumeration<int>(Enumerable.Range(200, 10).ToList())
+            //    from k2 in new FiniteEnumeration<int>(Enumerable.Range(200, 10).ToList())
+            //    let tmp1 = F(k1, k2)
+            //    from yhat in tmp1
+            //    let prob = Score(yhat, 2.0, 2.0)
+            //    select new Weighted<Tuple<int, int, double>> { Value = Tuple.Create(k1, k2, yhat), Probability = prob };
+
+            //var sampler = new MarkovChainMonteCarloSampler<Tuple<int, int, double>>(program1);
+
+            //using (StreamWriter sw = new StreamWriter("prob-vs-yhatsq.txt"))
             //{
-            //    foreach (var t in tmp)
+            //    foreach (var item in sampler.Skip(10000).Take(100000))
             //    {
-            //        sw.Write(t.Value.Item1 + " " + t.Value.Item2 + " " + t.Probability);
-            //        sw.Write(Environment.NewLine);
+            //        sw.WriteLine(String.Format("{0} {1}", item.Value.Item3, item.Probability));
             //    }
-            //}   
-
-            var program1 =
-                from k1 in new FiniteEnumeration<int>(Enumerable.Range(200, 10).ToList())
-                from k2 in new FiniteEnumeration<int>(Enumerable.Range(200, 10).ToList())
-                let tmp1 = F(k1, k2)
-                from yhat in tmp1
-                let prob = Score(yhat, 2.0, 2.0)
-                select new Weighted<Tuple<int, int, double>> { Value = Tuple.Create(k1, k2, yhat), Probability = prob };
-
-            var sampler = new MarkovChainMonteCarloSampler<Tuple<int, int, double>>(program1);
-
-            using (StreamWriter sw = new StreamWriter("prob-vs-yhatsq.txt"))
-            {
-                foreach (var item in sampler.Skip(10000).Take(100000))
-                {
-                    sw.WriteLine(String.Format("{0} {1}", item.Value.Item3, item.Probability));
-                }
-            }              
+            //}              
 
             StreamReader datafile = new StreamReader(@"C:\Users\t-chnand\Desktop\Uncertainty\InferenceSemantics\SearchEngine\SearchEngine\dataset\Data1.txt");
             DataParser.ParseDataSet(datafile);
             data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
             string query = "learning";
-            int new_d_k = 1;
-            int new_c_k = 1;
-            int delta = 3;
             var distributed_k = new FiniteEnumeration<int>(Enumerable.Range(20, 5).ToList());
             var central_k = new FiniteEnumeration<int>(Enumerable.Range(10, 3).ToList());
             try
