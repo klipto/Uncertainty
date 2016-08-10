@@ -236,17 +236,17 @@ namespace SearchEngine
 
         private static double T_Score(double t, long dof)
         {
-            double numerator=1.0, denominator=1.0;
+            double numerator = 1.0, denominator = 1.0;
             double ret = 0.0;
             double factor = Math.Pow((1 + (Math.Pow(t, 2) / dof)), (-(dof + 1) / 2));
             if (dof <= 3)
             {
-                if (dof == 1) 
-                    ret= 1/(Math.PI*(1+Math.Pow(t,2)));
-                if(dof == 2)
-                    ret= 1/(Math.Pow((2+Math.Pow(t,2)),3/2));
+                if (dof == 1)
+                    ret = 1 / (Math.PI * (1 + Math.Pow(t, 2)));
+                if (dof == 2)
+                    ret = 1 / (Math.Pow((2 + Math.Pow(t, 2)), 3 / 2));
                 if (dof == 3)
-                    ret= 6*Math.Sqrt(3)/(Math.PI*Math.Pow((3+Math.Pow(t,2)),2));
+                    ret = 6 * Math.Sqrt(3) / (Math.PI * Math.Pow((3 + Math.Pow(t, 2)), 2));
                 return ret;
             }
             else
@@ -261,7 +261,7 @@ namespace SearchEngine
                     {
                         denominator = denominator * y;
                     }
-                    ret= factor * numerator / (denominator * 2 * Math.Sqrt(dof));
+                    ret = factor * numerator / (denominator * 2 * Math.Sqrt(dof));
                 }
                 else
                 {
@@ -273,14 +273,10 @@ namespace SearchEngine
                     {
                         numerator = numerator * y;
                     }
-                    ret= factor * numerator / (denominator * Math.PI * Math.Sqrt(dof));
+                    ret = factor * numerator / (denominator * Math.PI * Math.Sqrt(dof));
                 }
                 return ret;
-            }            
-            //long f1 = Factorial(dof - 1);
-            //long f2 = Factorial(dof - 2);
-            //double numerator = Math.PI*Factorial(f1)/Math.Pow(2, dof/2);
-            //double denominator = Factorial(f2)*Math.Sqrt(Math.PI) * Math.Sqrt(dof*Math.PI)/Math.Pow(2, ((dof-1)/2));                     
+            }              
         }
 
         public struct TmpStruct : IEqualityComparer<TmpStruct>
@@ -306,88 +302,66 @@ namespace SearchEngine
                 return ((IComparable)x).CompareTo(y);
             }
         }
+
+        public static Weighted<T> Create<T>(T sample, double prob) 
+        {
+            return new Weighted<T>() { Value = sample, Probability = prob };
+        }
         public static void Main(string[] args)
         {
-           Func<int, Uncertain<double>> F = (k1) =>
+            Func<int, Uncertain<double>> F = (k1) =>
                 from a in new Gaussian(0, 1).SampledInference(k1, null)
                 select a;
 
-           var single_gaussian =
-                   from k1 in new FiniteEnumeration<int>(new[] { 5 })
-                   let mean = 0
-                   let variance = 1
-                   let a = F(k1)
-                   let all_values = a.Inference().Support()
-                   let sample_mean = all_values.Select(i => i.Probability * i.Value).Sum()
-                   let sample_variance = all_values.Select(i => Math.Pow((i.Value - sample_mean), 2) * i.Probability).Sum()
-                   let statistic1 = Math.Sqrt(k1) * (sample_mean - mean) / Math.Sqrt(sample_variance) // t-distribution with (k1-1) dof.
-                   let statistic2 = (k1 - 1) * sample_variance / variance
-                   select Tuple.Create(statistic1, statistic2);
+            const double BernoulliP = 0.05;
+            Func<int, Uncertain<int>> F1 = (k1) =>
+                  from a in new Flip(BernoulliP).SampledInference(k1, null)
+                  select Convert.ToInt32(a);          
 
-           var tempp = single_gaussian.SampledInference(100000).Support().OrderByDescending(i => i.Probability).ToList();
+            Func<int, double, Uncertain<double>, Tuple<double, List<Weighted<double>>>> TVariateGenerator = (k, population_mean, sample) =>
+            {
+                var all_values = sample.Inference().Support().ToList();
+               // var weighted_sample_mean = all_values.Select(i => i.Value * i.Probability).Sum();
+                //var weighted_sample_variance =
+                 //   (all_values.Select(i => i.Value * i.Value * i.Probability).Sum() - Math.Pow(weighted_sample_mean, 2)) / (1 - all_values.Select(i => i.Probability * i.Probability).Sum());
+                //var SEM = Math.Sqrt(weighted_sample_variance * all_values.Select(i => i.Probability * i.Probability).Sum());
+                //var t_statistic = (weighted_sample_mean - population_mean) / SEM; // maximizing the likelihood of this statistic would mean that the sample mean is close to population
+                                                                                  // mean because for t distribution, the likelihood is maximum for 0 (which is the mean).
 
-           //var v = 
-           string set_file = "single_gaussian.txt";
-           using (StreamWriter sw = new StreamWriter(set_file))
-           {
-               foreach (var t in tempp)
-               {
-                   sw.WriteLine(t.Value + " " + t.Probability);
-               }
-           }
-           return;
-            var program =
-               from k1 in new FiniteEnumeration<int>(new[] {5, 10, 50, 100})
-               from k2 in new FiniteEnumeration<int>(new[] {5, 10, 50, 100})
-               let a = F(k1)
-               let b = F(k2)
-               let allpaths = (from a0 in a
-                               from b0 in b
-                               let yhat = a0 + b0
-                               let prob = Score(yhat, 0, 2)
-                               select new Weighted<double>(yhat, prob)).Inference().Support()
-               let weighted_sample_mean = allpaths.Select(i => i.Probability * i.Value).Sum()
-               let weighted_sample_variance = allpaths.Select(i => Math.Pow((i.Value - weighted_sample_mean), 2) * i.Probability).Sum()
-               let SEM = Math.Sqrt(weighted_sample_variance / (k1 * k2))               
-               let t_variate = (weighted_sample_mean - 0) / SEM // this has a T-distribution with (k1*k2-1) DOF. 
-               let SEM_prob = StudentT.PDF(0,1,(k1*k2)-1, t_variate)                                   
-               select new Weighted<Tuple<int, int, double>> {Value = Tuple.Create(k1, k2, t_variate), Probability = SEM_prob}; 
-            var tmp = program.Inference().Support().OrderByDescending(i => i.Probability).ToList();         
+                var sample_mean = all_values.Select(i => i.Value).Sum()/k;
+                var sample_variance = all_values.Select(i => (i.Value - sample_mean) * (i.Value - sample_mean)).Sum() / (k - 1);
+                var SEM = Math.Sqrt(sample_variance/k);
+                var t_statistic = (sample_mean - population_mean) / SEM;
+                return Tuple.Create(t_statistic, all_values);
+            };
+
+            Func<int, Uncertain<double>, Tuple<int, double, List<Weighted<double>>>> SameSampleSizeBestProgramSampler = (k, p) =>
+            {
+                var samples= p.SampledInference(1000);
+                var t_variates = from sample in samples
+                                let t = TVariateGenerator(k, BernoulliP, sample)
+                                select t;
+                var rets = t_variates.Inference().Support().OrderByDescending(i=> StudentT.PDF(0,1, k-1, i.Value.Item1)).ToList();
+                var best_sample_of_fixed_size = rets.ElementAt(0).Value.Item2;
+                var max_likelihood = StudentT.PDF(0,1, k-1, rets.ElementAt(0).Value.Item1);
+                return Tuple.Create(k, max_likelihood ,best_sample_of_fixed_size);
+            };
+
+            Func<List<Tuple<int, double, List<Weighted<double>>>>, int> BestKSelector = (best_samples_of_fixed_size) =>
+            {
+                int k = 0;
+                var ordered_list_according_to_likelihood = best_samples_of_fixed_size.OrderByDescending(i => i.Item2 * (i.Item1 - 3) / (i.Item1 - 1)); //proportional to product of likelihood and inversely proprotional to variance which is (dof/dof-2)  
+                k = ordered_list_according_to_likelihood.ElementAt(0).Item1;  
+                return k;
+            };
+
+            var binomial_debugger = from k1 in new FiniteEnumeration<int>(new[] { 10, 25, 50, 100, 500})
+                                    let a = F(k1)
+                                    let best_program = SameSampleSizeBestProgramSampler(k1, a)
+                                    select best_program;
             
-            string se_file = "standard_error.txt";
-            using (StreamWriter sw = new StreamWriter(se_file))
-            {
-                foreach (var t in tmp)
-                {
-                    sw.WriteLine(t.Value.Item3 + " " + t.Probability);
-                }
-            }                     
-            string datafile2 = "correct_inference.txt";
-            using (StreamWriter sw = new StreamWriter(datafile2))
-            {
-                foreach (var t in tmp)
-                {
-                    Console.Write(t.Value + " "+ t.Probability);
-                    sw.WriteLine(t.Value + " " + t.Probability);
-                }
-            }
-            //var program1 =
-            //    from k1 in new FiniteEnumeration<int>(Enumerable.Range(200, 10).ToList())
-            //    from k2 in new FiniteEnumeration<int>(Enumerable.Range(200, 10).ToList())
-            //    let tmp1 = F(k1, k2)
-            //    from yhat in tmp1
-            //    let prob = Score(yhat, 2.0, 2.0)
-            //    select new Weighted<Tuple<int, int, double>> { Value = Tuple.Create(k1, k2, yhat), Probability = prob };
-
-            //var sampler = new MarkovChainMonteCarloSampler<Tuple<int, int, double>>(program1);
-
-            //using (StreamWriter sw = new StreamWriter("prob-vs-yhatsq.txt"))
-            //{
-            //    foreach (var item in sampler.Skip(10000).Take(100000))
-            //    {
-            //        sw.WriteLine(String.Format("{0} {1}", item.Value.Item3, item.Probability));
-            //    }
-            //}              
+            var all_good_programs = binomial_debugger.Inference().Support().Select(i=>i.Value).ToList();
+            var bestK = BestKSelector(all_good_programs);    
 
             StreamReader datafile = new StreamReader(@"C:\Users\t-chnand\Desktop\Uncertainty\InferenceSemantics\SearchEngine\SearchEngine\dataset\Data1.txt");
             DataParser.ParseDataSet(datafile);
@@ -397,7 +371,6 @@ namespace SearchEngine
             var central_k = new FiniteEnumeration<int>(Enumerable.Range(10, 3).ToList());
             try
             {
-
                 for (int times = 0; times < 1000; times++)
                 {
                     var ks = from d_k in distributed_k
