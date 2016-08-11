@@ -309,45 +309,56 @@ namespace SearchEngine
         }
         public static void Main(string[] args)
         {
-            Func<int, Uncertain<double>> F = (k1) =>
-                from a in new Gaussian(0, 1).SampledInference(k1, null)
-                select a;
+           
+            Func<int, Uncertain<double>> F = (k1) =>               
+                  from a in new Gaussian(0,1).SampledInference(k1)
+                  select a;               
 
             const double BernoulliP = 0.05;
             Func<int, Uncertain<int>> F1 = (k1) =>
                   from a in new Flip(BernoulliP).SampledInference(k1, null)
-                  select Convert.ToInt32(a);          
+                  select Convert.ToInt32(a);
 
-            Func<int, double, Uncertain<double>, Tuple<double, List<Weighted<double>>>> TVariateGenerator = (k, population_mean, sample) =>
+            var pt = from k1 in new FiniteEnumeration<int>(new[] { 5, 10 })
+                     let a = F(k1)
+                     select a;
+
+            var ttt = pt.SampledInference(50);
+            
+            Func<int, double, Uncertain<double>, Tuple<int, double, List<Weighted<double>>>> TVariateGenerator = (k, population_mean, sample) =>
             {
-                var all_values = sample.Inference().Support().ToList();
-               // var weighted_sample_mean = all_values.Select(i => i.Value * i.Probability).Sum();
-                //var weighted_sample_variance =
-                 //   (all_values.Select(i => i.Value * i.Value * i.Probability).Sum() - Math.Pow(weighted_sample_mean, 2)) / (1 - all_values.Select(i => i.Probability * i.Probability).Sum());
-                //var SEM = Math.Sqrt(weighted_sample_variance * all_values.Select(i => i.Probability * i.Probability).Sum());
-                //var t_statistic = (weighted_sample_mean - population_mean) / SEM; // maximizing the likelihood of this statistic would mean that the sample mean is close to population
-                                                                                  // mean because for t distribution, the likelihood is maximum for 0 (which is the mean).
-
+                var all_values = sample.Inference().Support().ToList();              
                 var sample_mean = all_values.Select(i => i.Value).Sum()/k;
                 var sample_variance = all_values.Select(i => (i.Value - sample_mean) * (i.Value - sample_mean)).Sum() / (k - 1);
                 var SEM = Math.Sqrt(sample_variance/k);
                 var t_statistic = (sample_mean - population_mean) / SEM;
-                return Tuple.Create(t_statistic, all_values);
+                return Tuple.Create(k, t_statistic, all_values);
             };
-
-            Func<int, Uncertain<double>, Tuple<int, double, List<Weighted<double>>>> SameSampleSizeBestProgramSampler = (k, p) =>
+                                             
+            Func<Uncertain<Uncertain<double>>, IEnumerable<Tuple<int, double, List<Weighted<double>>>>> SameSampleSizeBestProgramSampler = (p) =>
             {
-                var samples= p.SampledInference(1000);
+                var samples = p.SampledInference(100000).Support().ToList();
                 var t_variates = from sample in samples
-                                let t = TVariateGenerator(k, BernoulliP, sample)
-                                select t;
-                var rets = t_variates.Inference().Support().OrderByDescending(i=> StudentT.PDF(0,1, k-1, i.Value.Item1)).ToList();
-                var best_sample_of_fixed_size = rets.ElementAt(0).Value.Item2;
-                var max_likelihood = StudentT.PDF(0,1, k-1, rets.ElementAt(0).Value.Item1);
-                return Tuple.Create(k, max_likelihood ,best_sample_of_fixed_size);
-            };
+                                 let t = TVariateGenerator(sample.Value.Inference().Support().ToList().Count, BernoulliP, sample.Value)
+                                 select t;
+                var sorted_tvariates = t_variates.OrderByDescending(i => StudentT.PDF(0, 1, i.Item1 - 1, i.Item2)).ToList();
+                Dictionary<int, Tuple<double, List<Weighted<double>>>> best_samples_of_fixed_sizes = new Dictionary<int, Tuple<double, List<Weighted<double>>>>();
+                for (int x = 0; x < sorted_tvariates.Count;x++ )
+                {
+                    if (!best_samples_of_fixed_sizes.Keys.Contains(sorted_tvariates[x].Item1))
+                    {
+                        best_samples_of_fixed_sizes.Add(sorted_tvariates[x].Item1, Tuple.Create(sorted_tvariates[x].Item2, sorted_tvariates[x].Item3));
+                    }
+                    else continue;
+                }
 
-            Func<List<Tuple<int, double, List<Weighted<double>>>>, int> BestKSelector = (best_samples_of_fixed_size) =>
+                var max_likelihoods_for_each_sample_size = from best_sample_of_fixed_size in best_samples_of_fixed_sizes
+                                                           select Tuple.Create(best_sample_of_fixed_size.Key, StudentT.PDF(0,1,best_sample_of_fixed_size.Key-1,best_sample_of_fixed_size.Value.Item1), best_sample_of_fixed_size.Value.Item2);                   
+               
+                return max_likelihoods_for_each_sample_size;
+            };          
+
+            Func<IEnumerable<Tuple<int, double, List<Weighted<double>>>>, int> BestKSelector = (best_samples_of_fixed_size) =>
             {
                 int k = 0;
                 var ordered_list_according_to_likelihood = best_samples_of_fixed_size.OrderByDescending(i => i.Item2 * (i.Item1 - 3) / (i.Item1 - 1)); //proportional to product of likelihood and inversely proprotional to variance which is (dof/dof-2)  
@@ -355,12 +366,12 @@ namespace SearchEngine
                 return k;
             };
 
-            var binomial_debugger = from k1 in new FiniteEnumeration<int>(new[] { 10, 25, 50, 100, 500})
-                                    let a = F(k1)
-                                    let best_program = SameSampleSizeBestProgramSampler(k1, a)
-                                    select best_program;
-            
-            var all_good_programs = binomial_debugger.Inference().Support().Select(i=>i.Value).ToList();
+            var binomial_program = from k1 in new FiniteEnumeration<int>(new[] {5, 10, 15, 20, 50, 75, 150})
+                                   let a = F(k1)
+                                   select a;
+
+            var all_good_programs = SameSampleSizeBestProgramSampler(binomial_program);
+                     
             var bestK = BestKSelector(all_good_programs);    
 
             StreamReader datafile = new StreamReader(@"C:\Users\t-chnand\Desktop\Uncertainty\InferenceSemantics\SearchEngine\SearchEngine\dataset\Data1.txt");
@@ -383,7 +394,6 @@ namespace SearchEngine
                              where CorrectnessCondition(score_probabilities, central_search) == true
                              select Tuple.Create(d_k, c_k);
                     var res = ks.Inference().Support().OrderByDescending(i => i.Probability);
-
                     foreach (var r in res)
                     {
                         Console.WriteLine(String.Format("{0} {1} {2}", r.Value.Item1, r.Value.Item2, r.Probability));
