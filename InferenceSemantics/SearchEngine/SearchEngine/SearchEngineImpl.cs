@@ -319,12 +319,7 @@ namespace SearchEngine
                   from a in new Flip(BernoulliP).SampledInference(k1, null)
                   select Convert.ToInt32(a);
 
-            var pt = from k1 in new FiniteEnumeration<int>(new[] { 5, 10 })
-                     let a = F(k1)
-                     select a;
-
-            var ttt = pt.SampledInference(50);
-            
+                    
             Func<int, double, Uncertain<double>, Tuple<int, double, List<Weighted<double>>>> TVariateGenerator = (k, population_mean, sample) =>
             {
                 var all_values = sample.Inference().Support().ToList();              
