@@ -308,8 +308,7 @@ namespace SearchEngine
             return new Weighted<T>() { Value = sample, Probability = prob };
         }
         public static void Main(string[] args)
-        {
-           
+        {  
             Func<int, Uncertain<double>> F = (k1) =>               
                   from a in new Gaussian(0,1).SampledInference(k1)
                   select a;               
@@ -353,20 +352,40 @@ namespace SearchEngine
                 return max_likelihoods_for_each_sample_size;
             };          
 
-            Func<IEnumerable<Tuple<int, double, List<Weighted<double>>>>, int> BestKSelector = (best_samples_of_fixed_size) =>
+            Func<IEnumerable<Tuple<int, double, List<Weighted<double>>>>, int> BestKSelector = (best_samples_of_fixed_size) => 
             {
                 int k = 0;
-                var ordered_list_according_to_likelihood = best_samples_of_fixed_size.OrderByDescending(i => i.Item2 * (i.Item1 - 3) / (i.Item1 - 1)); //proportional to product of likelihood and inversely proprotional to variance which is (dof/dof-2)  
-                k = ordered_list_according_to_likelihood.ElementAt(0).Item1;  
+                int largest_sample_size = best_samples_of_fixed_size.OrderByDescending(i => i.Item1).ElementAt(0).Item1;
+
+                List<Tuple<double, int, double, List<Weighted<double>>>> normalized_weights = new List<Tuple<double, int, double, List<Weighted<double>>>>();
+
+                foreach (var tuple in best_samples_of_fixed_size)
+                {
+                    double ratio = (double)tuple.Item1 / (double)largest_sample_size;
+                    var newTuple = Tuple.Create(ratio, tuple.Item1, tuple.Item2, tuple.Item3);
+                    normalized_weights.Add(newTuple);
+                }
+                var ordered_list_according_to_likelihood = normalized_weights.OrderByDescending(i => Math.Pow(i.Item3,1) * Math.Sqrt(i.Item2 - 3) / (Math.Sqrt(i.Item2 - 1))); //proportional to product of likelihood and inversely proprotional to variance which is (dof/dof-2)  
+
+                List<Tuple<double, double, int, double, List<Weighted<double>>>> utilities = new List<Tuple<double, double, int, double, List<Weighted<double>>>>();
+
+                foreach (var tuple in ordered_list_according_to_likelihood)
+                {
+                    double utility = tuple.Item3 * Math.Sqrt(tuple.Item2 - 3) / (Math.Sqrt(tuple.Item2 - 1));
+                    var newTuple = Tuple.Create(utility, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
+                    utilities.Add(newTuple);
+                }
+
+                var ordered_utilities = utilities.OrderByDescending(i=>i.Item1);
+                k = ordered_utilities.ElementAt(0).Item3;  
                 return k;
             };
 
-            var binomial_program = from k1 in new FiniteEnumeration<int>(new[] {5, 10, 15, 20, 50, 75, 150})
+            var binomial_program = from k1 in new FiniteEnumeration<int>(new[] {10, 50, 75, 100,110})
                                    let a = F(k1)
                                    select a;
 
-            var all_good_programs = SameSampleSizeBestProgramSampler(binomial_program);
-                     
+            var all_good_programs = SameSampleSizeBestProgramSampler(binomial_program);                     
             var bestK = BestKSelector(all_good_programs);    
 
             StreamReader datafile = new StreamReader(@"C:\Users\t-chnand\Desktop\Uncertainty\InferenceSemantics\SearchEngine\SearchEngine\dataset\Data1.txt");
