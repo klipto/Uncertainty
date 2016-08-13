@@ -60,7 +60,6 @@ namespace InferenceDebugger
             }
             //var sample = erp.Sample(this.generation++);
             //this.sample = (Weighted<T>)new Weighted<T>(sample);
-
         }
 
         public void Visit<T>(Inference<T> inference)

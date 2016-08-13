@@ -329,11 +329,11 @@ namespace SearchEngine
                 return Tuple.Create(k, t_statistic, all_values);
             };
                                              
-            Func<Uncertain<Uncertain<double>>, IEnumerable<Tuple<int, double, List<Weighted<double>>>>> SameSampleSizeBestProgramSampler = (p) =>
+            Func<double, Uncertain<Uncertain<double>>, IEnumerable<Tuple<int, double, List<Weighted<double>>>>> SameSampleSizeBestProgramSampler = (population_mean, p) =>
             {
-                var samples = p.SampledInference(100000).Support().ToList();
+                var samples = p.SampledInference(10000).Support().ToList();
                 var t_variates = from sample in samples
-                                 let t = TVariateGenerator(sample.Value.Inference().Support().ToList().Count, BernoulliP, sample.Value)
+                                 let t = TVariateGenerator(sample.Value.Inference().Support().ToList().Count, population_mean, sample.Value)
                                  select t;
                 var sorted_tvariates = t_variates.OrderByDescending(i => StudentT.PDF(0, 1, i.Item1 - 1, i.Item2)).ToList();
                 Dictionary<int, Tuple<double, List<Weighted<double>>>> best_samples_of_fixed_sizes = new Dictionary<int, Tuple<double, List<Weighted<double>>>>();
@@ -356,38 +356,71 @@ namespace SearchEngine
             {
                 int k = 0;
                 int largest_sample_size = best_samples_of_fixed_size.OrderByDescending(i => i.Item1).ElementAt(0).Item1;
-
-                List<Tuple<double, int, double, List<Weighted<double>>>> normalized_weights = new List<Tuple<double, int, double, List<Weighted<double>>>>();
+                List<Tuple<double, int, double, List<Weighted<double>>>> normalized_sample_size = new List<Tuple<double, int, double, List<Weighted<double>>>>();
 
                 foreach (var tuple in best_samples_of_fixed_size)
                 {
-                    double ratio = (double)tuple.Item1 / (double)largest_sample_size;
+                    double ratio = (double)largest_sample_size / (double) tuple.Item1;
                     var newTuple = Tuple.Create(ratio, tuple.Item1, tuple.Item2, tuple.Item3);
-                    normalized_weights.Add(newTuple);
+                    normalized_sample_size.Add(newTuple);
                 }
-                var ordered_list_according_to_likelihood = normalized_weights.OrderByDescending(i => Math.Pow(i.Item3,1) * Math.Sqrt(i.Item2 - 3) / (Math.Sqrt(i.Item2 - 1))); //proportional to product of likelihood and inversely proprotional to variance which is (dof/dof-2)  
-
-                List<Tuple<double, double, int, double, List<Weighted<double>>>> utilities = new List<Tuple<double, double, int, double, List<Weighted<double>>>>();
-
-                foreach (var tuple in ordered_list_according_to_likelihood)
+                var ordered_list_according_to_utility =
+                    normalized_sample_size.OrderByDescending(i => i.Item3 * (double)(i.Item2 - 3) * Math.Pow(i.Item1,1/2) / (double)(i.Item2 - 1)); //proportional to product of likelihood and inversely proprotional to variance which is (dof/dof-2)  
+               
+                List<Tuple<double, double, double, int, double, List<Weighted<double>>>> utilities = new List<Tuple<double, double, double, int, double, List<Weighted<double>>>>();                
+                foreach (var tuple in ordered_list_according_to_utility)
                 {
-                    double utility = tuple.Item3 * Math.Sqrt(tuple.Item2 - 3) / (Math.Sqrt(tuple.Item2 - 1));
-                    var newTuple = Tuple.Create(utility, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
+                    double likelihood = tuple.Item3;
+                    double variance_inverse = (double)(tuple.Item2 - 3) / (double)(tuple.Item2 - 1);
+                    double ratio_l_var = likelihood * variance_inverse;
+                    double size_ratio = Math.Pow(tuple.Item1,1/2);
+                    double final_utility= (ratio_l_var * size_ratio) ;                       
+                    double utility = Math.Round(final_utility,3);                   
+                    var newTuple = Tuple.Create(final_utility,utility, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
                     utilities.Add(newTuple);
                 }
-
-                var ordered_utilities = utilities.OrderByDescending(i=>i.Item1);
-                k = ordered_utilities.ElementAt(0).Item3;  
-                return k;
+                var ordered_utilities = utilities.OrderByDescending(i=>i.Item2);
+                var max_utility = ordered_utilities.ElementAt(0).Item2;
+                List<Tuple<double, double, double, int, double, List<Weighted<double>>>> best_utilities = new List<Tuple<double, double, double, int, double, List<Weighted<double>>>>();
+                foreach (var utility_tuple in utilities)
+                {
+                    if (utility_tuple.Item2 == max_utility)
+                    {
+                        var tuple = Tuple.Create(utility_tuple.Item1,utility_tuple.Item2, utility_tuple.Item3, utility_tuple.Item4, utility_tuple.Item5, utility_tuple.Item6);
+                        best_utilities.Add(tuple);
+                    }
+                }
+                k = best_utilities.OrderBy(i=>i.Item4).ElementAt(0).Item4;  
+                return k;            
             };
 
-            var binomial_program = from k1 in new FiniteEnumeration<int>(new[] {10, 50, 75, 100,110})
-                                   let a = F(k1)
-                                   select a;
+            var gaussian1 = from k1 in new FiniteEnumeration<int>(new[] { 150, 175, 200, 250, 275, 300, 350, 400, 500, 600 })                                    
+                                    let a = F(k1)
+                                    select a;
+            var gaussian2 = from k2 in new FiniteEnumeration<int>(new[] { 50, 75, 100, 200, 250 })
+                                    let b = F(k2)
+                                    select b;
 
-            var all_good_programs = SameSampleSizeBestProgramSampler(binomial_program);                     
-            var bestK = BestKSelector(all_good_programs);    
+            var all_good_programs1 = SameSampleSizeBestProgramSampler(0, gaussian1);                     
+            var bestK1 = BestKSelector(all_good_programs1);
+            var all_good_programs2 = SameSampleSizeBestProgramSampler(0, gaussian2);
+            var bestK2 = BestKSelector(all_good_programs2);
 
+            var gaussian_program_added = from a in F(bestK1)
+                                         from b in F(bestK2)
+                                         select a+b;
+
+            var code = gaussian_program_added.Inference();
+
+            using (StreamWriter sw = new StreamWriter("sum_of_gaussians.txt"))
+            {
+                foreach(var v in code.Support().ToList())
+                {
+                    sw.WriteLine(v.Value);
+                }
+            }              
+
+            
             StreamReader datafile = new StreamReader(@"C:\Users\t-chnand\Desktop\Uncertainty\InferenceSemantics\SearchEngine\SearchEngine\dataset\Data1.txt");
             DataParser.ParseDataSet(datafile);
             data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);

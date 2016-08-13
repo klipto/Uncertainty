@@ -13,7 +13,6 @@ namespace InferenceDebugger
         {
             this.Object = obj;          
         }
-
         public Object Object;  
     }
 }
