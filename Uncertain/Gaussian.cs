@@ -43,6 +43,13 @@ namespace Microsoft.Research.Uncertain
             this.stdev = stdev;
         }
 
+        public static double Likelihood(double t, double mu, double stdev)
+        {
+            var a = 1.0 / (stdev * Math.Sqrt(2 * Math.PI));
+            var b = Math.Exp(-Math.Pow(t - mu, 2) / (2 * stdev * stdev));
+            return a * b;
+        }
+
         protected double NextGaussian()
         {
             double sample;

@@ -17,7 +17,7 @@ namespace UncertainTests
             var program = from a in new Flip(0.9)
                           from b in new Flip(0.9)
                           from c in new Flip(0.9)
-                          //where !a
+                              //where !a
                           select Convert.ToInt32(a) + Convert.ToInt32(b) + Convert.ToInt32(c);
 
             var sampler = new MarkovChainMonteCarloSampler<int>(program);
@@ -69,228 +69,228 @@ namespace UncertainTests
             int x = 10;
         }
 
-        static Uncertain<string[]> HMM(string[] obs)
-        {
-            var states = new[] { "Healthy", "Fever" };
+        //static Uncertain<string[]> HMM(string[] obs)
+        //{
+        //    var states = new[] { "Healthy", "Fever" };
 
-            var emits = new[] { "normal", "cold", "dizzy" };
+        //    var emits = new[] { "normal", "cold", "dizzy" };
 
-            var start_probability = new Multinomial<string>(states, new[] { 0.6, 0.4 });
+        //    var start_probability = new Multinomial<string>(states, new[] { 0.6, 0.4 });
 
-            Func<string, Multinomial<string>> transition_probability = state =>
-            {
-                if (state == "Healthy")
-                    return new Multinomial<string>(states, new[] { 0.7, 0.3 });
-                if (state == "Fever")
-                    return new Multinomial<string>(states, new[] { 0.4, 0.6 });
+        //    Func<string, Multinomial<string>> transition_probability = state =>
+        //    {
+        //        if (state == "Healthy")
+        //            return new Multinomial<string>(states, new[] { 0.7, 0.3 });
+        //        if (state == "Fever")
+        //            return new Multinomial<string>(states, new[] { 0.4, 0.6 });
 
-                throw new Exception("Unknown state");
-            };
+        //        throw new Exception("Unknown state");
+        //    };
 
-            Func<string, Multinomial<string>> emission_probability = state =>
-            {
-                if (state == "Healthy")
-                    return new Multinomial<string>(emits, new[] { 0.5, 0.4, 0.1 });
-                if (state == "Fever")
-                    return new Multinomial<string>(emits, new[] { 0.1, 0.3, 0.6 });
+        //    Func<string, Multinomial<string>> emission_probability = state =>
+        //    {
+        //        if (state == "Healthy")
+        //            return new Multinomial<string>(emits, new[] { 0.5, 0.4, 0.1 });
+        //        if (state == "Fever")
+        //            return new Multinomial<string>(emits, new[] { 0.1, 0.3, 0.6 });
 
-                throw new Exception("Unknown state");
-            };
+        //        throw new Exception("Unknown state");
+        //    };
 
-            return
-                from prior in start_probability
+        //    return
+        //        from prior in start_probability
 
-                from state0 in transition_probability(prior)
-                from emit0 in emission_probability(state0)
-                where obs[0] == emit0
+        //        from state0 in transition_probability(prior)
+        //        from emit0 in emission_probability(state0)
+        //        where obs[0] == emit0
 
-                from state1 in transition_probability(state0)
-                from emit1 in emission_probability(state1)
-                where obs[1] == emit1
+        //        from state1 in transition_probability(state0)
+        //        from emit1 in emission_probability(state1)
+        //        where obs[1] == emit1
 
-                from state2 in transition_probability(state1)
-                from emit2 in emission_probability(state2)
-                where obs[2] == emit2
+        //        from state2 in transition_probability(state1)
+        //        from emit2 in emission_probability(state2)
+        //        where obs[2] == emit2
 
-                select new[] { state0, state1, state2 };
-        }
+        //        select new[] { state0, state1, state2 };
+        //}
 
-        static Uncertain<string[]> HMM2(Uncertain<string[]> observations)
-        {
-            var states = new[] { "Healthy", "Fever" };
+        //static Uncertain<string[]> HMM2(Uncertain<string[]> observations)
+        //{
+        //    var states = new[] { "Healthy", "Fever" };
 
-            var emits = new[] { "normal", "cold", "dizzy" };
+        //    var emits = new[] { "normal", "cold", "dizzy" };
 
-            var start_probability = new Multinomial<string>(states, new[] { 0.6, 0.4 });
+        //    var start_probability = new Multinomial<string>(states, new[] { 0.6, 0.4 });
 
-            Func<string, Multinomial<string>> transition_probability = state =>
-            {
-                if (state == "Healthy")
-                    return new Multinomial<string>(states, new[] { 0.7, 0.3 });
-                if (state == "Fever")
-                    return new Multinomial<string>(states, new[] { 0.4, 0.6 });
+        //    Func<string, Multinomial<string>> transition_probability = state =>
+        //    {
+        //        if (state == "Healthy")
+        //            return new Multinomial<string>(states, new[] { 0.7, 0.3 });
+        //        if (state == "Fever")
+        //            return new Multinomial<string>(states, new[] { 0.4, 0.6 });
 
-                throw new Exception("Unknown state");
-            };
+        //        throw new Exception("Unknown state");
+        //    };
 
-            Func<string, Multinomial<string>> emission_probability = state =>
-            {
-                if (state == "Healthy")
-                    return new Multinomial<string>(emits, new[] { 0.5, 0.4, 0.1 });
-                if (state == "Fever")
-                    return new Multinomial<string>(emits, new[] { 0.1, 0.3, 0.6 });
+        //    Func<string, Multinomial<string>> emission_probability = state =>
+        //    {
+        //        if (state == "Healthy")
+        //            return new Multinomial<string>(emits, new[] { 0.5, 0.4, 0.1 });
+        //        if (state == "Fever")
+        //            return new Multinomial<string>(emits, new[] { 0.1, 0.3, 0.6 });
 
-                throw new Exception("Unknown state");
-            };
+        //        throw new Exception("Unknown state");
+        //    };
 
-            return observations.MarkovModel<string>(start_probability, transition_probability, emission_probability);            
-        }
+        //    return observations.MarkovModel<string>(start_probability, transition_probability, emission_probability);
+        //}
 
-        [TestMethod]
-        public void TestHMM2()
-        {
-            var comparer = new SequenceComparer<string>();
-            var states = new[] { "Healthy", "Fever" };
-            var emits = new[] { "normal", "cold", "dizzy" };
+        //[TestMethod]
+        //public void TestHMM2()
+        //{
+        //    var comparer = new SequenceComparer<string>();
+        //    var states = new[] { "Healthy", "Fever" };
+        //    var emits = new[] { "normal", "cold", "dizzy" };
 
-            Uncertain<string>[] source = new[] {
-                new Multinomial<string>(emits, new [] {0.8, 0.1, 0.1}),
-                new Multinomial<string>(emits, new [] {0.2, 0.7, 0.1}),
-                new Multinomial<string>(emits, new [] {0.05, 0.05, 0.9}),
-            };
+        //    Uncertain<string>[] source = new[] {
+        //        new Multinomial<string>(emits, new [] {0.8, 0.1, 0.1}),
+        //        new Multinomial<string>(emits, new [] {0.2, 0.7, 0.1}),
+        //        new Multinomial<string>(emits, new [] {0.05, 0.05, 0.9}),
+        //    };
 
-            Uncertain<string[]> observations = source.USeq(3);
+        //    Uncertain<string[]> observations = source.USeq(3);
 
-            var program = from obs in observations
-                          from result in HMM(obs)
-                          select result;
+        //    var program = from obs in observations
+        //                  from result in HMM(obs)
+        //                  select result;
 
-            var program1 = from obs in observations
-                          from result in HMM(obs).Inference(comparer)
-                          select result;
+        //    var program1 = from obs in observations
+        //                   from result in HMM(obs).Inference(comparer)
+        //                   select result;
 
-            var program2 = from obs in observations.Inference(comparer)
-                           from result in HMM(obs).Inference(comparer)
-                           select result;
+        //    var program2 = from obs in observations.Inference(comparer)
+        //                   from result in HMM(obs).Inference(comparer)
+        //                   select result;
 
-            var output = program.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
-            var output1 = program1.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
-            var output2 = program2.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();            
-            var output3 = HMM2(observations).Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
+        //    var output = program.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
+        //    var output1 = program1.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
+        //    var output2 = program2.Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
+        //    var output3 = HMM2(observations).Inference(comparer).Support().OrderByDescending(k => k.Probability).ToList();
 
-            var timer = new System.Diagnostics.Stopwatch();
+        //    var timer = new System.Diagnostics.Stopwatch();
 
-            timer.Start();
-            var sampled = program.SampledInference(10000, comparer).Support().OrderByDescending(k => k.Probability).ToList();
-            timer.Stop();
-            System.Diagnostics.Debug.WriteLine(timer.Elapsed);
-            timer.Reset();
-            timer.Start();
-            var sampled1 = program1.SampledInference(10000, comparer).Support().OrderByDescending(k => k.Probability).ToList();
-            timer.Stop();
-            System.Diagnostics.Debug.WriteLine(timer.Elapsed);
-            timer.Reset();
-            timer.Start();
-            var sampled2 = program2.SampledInference(10000, comparer).Support().OrderByDescending(k => k.Probability).ToList();
-            timer.Stop();
-            System.Diagnostics.Debug.WriteLine(timer.Elapsed);
+        //    timer.Start();
+        //    var sampled = program.SampledInference(10000, comparer).Support().OrderByDescending(k => k.Probability).ToList();
+        //    timer.Stop();
+        //    System.Diagnostics.Debug.WriteLine(timer.Elapsed);
+        //    timer.Reset();
+        //    timer.Start();
+        //    var sampled1 = program1.SampledInference(10000, comparer).Support().OrderByDescending(k => k.Probability).ToList();
+        //    timer.Stop();
+        //    System.Diagnostics.Debug.WriteLine(timer.Elapsed);
+        //    timer.Reset();
+        //    timer.Start();
+        //    var sampled2 = program2.SampledInference(10000, comparer).Support().OrderByDescending(k => k.Probability).ToList();
+        //    timer.Stop();
+        //    System.Diagnostics.Debug.WriteLine(timer.Elapsed);
 
-            Assert.IsTrue(comparer.Equals(output[0].Value, sampled[0].Value));
-            Assert.IsTrue(Math.Abs(output[0].Probability - sampled[0].Probability) < 0.1);
+        //    Assert.IsTrue(comparer.Equals(output[0].Value, sampled[0].Value));
+        //    Assert.IsTrue(Math.Abs(output[0].Probability - sampled[0].Probability) < 0.1);
 
-            Assert.IsTrue(comparer.Equals(output[0].Value, output3[0].Value));
-            Assert.IsTrue(Math.Abs(output[0].Probability - output3[0].Probability) < 0.1);
+        //    Assert.IsTrue(comparer.Equals(output[0].Value, output3[0].Value));
+        //    Assert.IsTrue(Math.Abs(output[0].Probability - output3[0].Probability) < 0.1);
 
-            int x = 10;
-        }
+        //    int x = 10;
+        //}
 
-        [TestMethod]
-        public void TestHMM3()
-        {
-            var comparer = new SequenceComparer<string>();
-            var states = new[] { "Healthy", "Fever" };
-            var emits = new[] { "normal", "cold", "dizzy" };
+        //[TestMethod]
+        //public void TestHMM3()
+        //{
+        //    var comparer = new SequenceComparer<string>();
+        //    var states = new[] { "Healthy", "Fever" };
+        //    var emits = new[] { "normal", "cold", "dizzy" };
 
-            var start_probability = new Multinomial<string>(states, new[] { 0.6, 0.4 });
+        //    var start_probability = new Multinomial<string>(states, new[] { 0.6, 0.4 });
 
-            Func<string, Multinomial<string>> transition_probability = state =>
-            {
-                if (state == "Healthy")
-                    return new Multinomial<string>(states, new[] { 0.7, 0.3 });
-                if (state == "Fever")
-                    return new Multinomial<string>(states, new[] { 0.4, 0.6 });
+        //    Func<string, Multinomial<string>> transition_probability = state =>
+        //    {
+        //        if (state == "Healthy")
+        //            return new Multinomial<string>(states, new[] { 0.7, 0.3 });
+        //        if (state == "Fever")
+        //            return new Multinomial<string>(states, new[] { 0.4, 0.6 });
 
-                throw new Exception("Unknown state");
-            };
+        //        throw new Exception("Unknown state");
+        //    };
 
-            Func<string, Multinomial<string>> emission_probability = state =>
-            {
-                if (state == "Healthy")
-                    return new Multinomial<string>(emits, new[] { 0.5, 0.4, 0.1 });
-                if (state == "Fever")
-                    return new Multinomial<string>(emits, new[] { 0.1, 0.3, 0.6 });
+        //    Func<string, Multinomial<string>> emission_probability = state =>
+        //    {
+        //        if (state == "Healthy")
+        //            return new Multinomial<string>(emits, new[] { 0.5, 0.4, 0.1 });
+        //        if (state == "Fever")
+        //            return new Multinomial<string>(emits, new[] { 0.1, 0.3, 0.6 });
 
-                throw new Exception("Unknown state");
-            };
+        //        throw new Exception("Unknown state");
+        //    };
 
-            var r = new Random(0);
+        //    var r = new Random(0);
 
-            var observations = Enumerable.Range(0, 20).Select(_ =>
-             {
-                 var probs = new[] { r.NextDouble(), r.NextDouble(), r.NextDouble() };
-                 double total = probs.Sum();
-                 var probsNormalized = from p in probs select p / total;
-                 return new Multinomial<string>(emits, probsNormalized);
-             }).USeq<string>(20);
+        //    var observations = Enumerable.Range(0, 20).Select(_ =>
+        //     {
+        //         var probs = new[] { r.NextDouble(), r.NextDouble(), r.NextDouble() };
+        //         double total = probs.Sum();
+        //         var probsNormalized = from p in probs select p / total;
+        //         return new Multinomial<string>(emits, probsNormalized);
+        //     }).USeq<string>(20);
 
-            //var program = observations.MarkovModel<string>(start_probability, transition_probability, emission_probability);
-            //var output = program.SampledInference(1, comparer).Support().OrderByDescending(k => k.Probability).ToList();
+        //    //var program = observations.MarkovModel<string>(start_probability, transition_probability, emission_probability);
+        //    //var output = program.SampledInference(1, comparer).Support().OrderByDescending(k => k.Probability).ToList();
 
-            int x = 10;
-        }
+        //    int x = 10;
+        //}
 
-        struct Audio { }
+        //struct Audio { }
 
-        public static bool[] Intervalize(bool[] x)
-        {
-            return x;
-        }
-        public static Uncertain<bool[]> PIntervalize(Uncertain<bool>[] x)
-        {
-            return null;
-        }
+        //public static bool[] Intervalize(bool[] x)
+        //{
+        //    return x;
+        //}
+        //public static Uncertain<bool[]> PIntervalize(Uncertain<bool>[] x)
+        //{
+        //    return null;
+        //}
 
-        [TestMethod]
-        public void VAD2()
-        {
-            Func<Audio, bool> Detect_Speech_Sample = _ => true;
-            Func<Uncertain<Audio>, Uncertain<bool>> Detect_Speech_Sample_U = src =>
-            {
-                return from item in src
-                       select Detect_Speech_Sample(item);
-            };
+        //[TestMethod]
+        //public void VAD2()
+        //{
+        //    Func<Audio, bool> Detect_Speech_Sample = _ => true;
+        //    Func<Uncertain<Audio>, Uncertain<bool>> Detect_Speech_Sample_U = src =>
+        //    {
+        //        return from item in src
+        //               select Detect_Speech_Sample(item);
+        //    };
 
-            var program = from audio in Enumerable.Empty<Uncertain<Audio>>().History(50)
-                          let tmp = audio.Select(Detect_Speech_Sample_U)
-                          let tmp1 = tmp.USeq(50)
-                          let tmp2 = tmp1.Select(Intervalize)
-                          select tmp2;
+        //    var program = from audio in Enumerable.Empty<Uncertain<Audio>>().History(50)
+        //                  let tmp = audio.Select(Detect_Speech_Sample_U)
+        //                  let tmp1 = tmp.USeq(50)
+        //                  let tmp2 = tmp1.Select(Intervalize)
+        //                  select tmp2;
 
-            var program0 =from audio in Enumerable.Empty<Uncertain<Audio>>().History(50)
-                          let tmp = audio.Select(Detect_Speech_Sample_U)
-                          let tmp1 = tmp.USeq2(Intervalize)
-                          select tmp1;
+        //    var program0 = from audio in Enumerable.Empty<Uncertain<Audio>>().History(50)
+        //                   let tmp = audio.Select(Detect_Speech_Sample_U)
+        //                   let tmp1 = tmp.USeq2(Intervalize)
+        //                   select tmp1;
 
-            var program1 = from audio in Enumerable.Empty<Uncertain<Audio>>().History(50)
-                           let tmp = audio.Select(Detect_Speech_Sample_U).ToArray()
-                           let tmp1 = PIntervalize(tmp)
-                           select tmp1;
+        //    var program1 = from audio in Enumerable.Empty<Uncertain<Audio>>().History(50)
+        //                   let tmp = audio.Select(Detect_Speech_Sample_U).ToArray()
+        //                   let tmp1 = PIntervalize(tmp)
+        //                   select tmp1;
 
-            var program2 = from audio in Enumerable.Empty<Uncertain<Audio>>().History1(50)
-                           let tmp = audio.Select(k => k.Select(Detect_Speech_Sample).ToArray()).Select(Intervalize)
-                           let tmp1 = tmp.Select(Intervalize)
-                           select tmp1;
-        }
+        //    var program2 = from audio in Enumerable.Empty<Uncertain<Audio>>().History1(50)
+        //                   let tmp = audio.Select(k => k.Select(Detect_Speech_Sample).ToArray()).Select(Intervalize)
+        //                   let tmp1 = tmp.Select(Intervalize)
+        //                   select tmp1;
+        //}
 
         [TestMethod]
         public void VAD()
@@ -356,263 +356,263 @@ namespace UncertainTests
             }
         }
 
-        [TestMethod]
-        public void TestLifting()
-        {
-            var input = Enumerable.Range(0, 7);
-            var unput = input.Select(_ => new Uniform<int>(0, 3));
+        // [TestMethod]
+        //    public void TestLifting()
+        //    {
+        //        var input = Enumerable.Range(0, 7);
+        //        var unput = input.Select(_ => new Uniform<int>(0, 3));
 
-            var state = 0;
-            foreach(var i in input)
-            {
-                state = Func(state, i);
-            }
-
-
-            var data = LiftedFunc(unput).USeq(2);
-            
-            var ustate = LiftedFunc(unput).Last();
-            var output = ustate.Inference().Support().OrderByDescending(k => k.Probability).ToList();
-
-            var output1 = data.Inference(new SequenceComparer<int>()).Support().OrderByDescending(k => k.Probability).ToList();
-
-            int x = 10;
-        }
+        //        var state = 0;
+        //        foreach(var i in input)
+        //        {
+        //            state = Func(state, i);
+        //        }
 
 
-        [TestMethod]
-        public void TestDan()
-        {
-            var r = new RandomMath();
-            int N = 50;
-            // Generate an array of independent estimates of whether a signal
-            // is high or low
-            Uncertain<bool>[] data = (from i in Enumerable.Range(0, N)
-                                      let noise = r.NextGaussian(0, 0.01)
-                                      let vad = i > 15 && i < 30 ? 0.9 : 0.1
-                                      let param = Math.Abs(vad + noise)
-                                      let f = new Bernoulli(param > 1 ? 1 : param)
-                                      select f).ToArray();
-            // history operator we chatted about
-            Uncertain<bool[]> history = data.USeq(N);
+        //        var data = LiftedFunc(unput).USeq(2);
 
-            // Inference computes a weighted bool[] object: effectively a histogram
-            // The call to SampledInference needs to know (i) how many samples to take and how to compare bool[]
-            Uncertain<bool[]> posterior = history.SampledInference(10000, new SequenceComparer<bool>());
+        //        var ustate = LiftedFunc(unput).Last();
+        //        var output = ustate.Inference().Support().OrderByDescending(k => k.Probability).ToList();
 
-            // now inspect by materializing a list
-            List<Weighted<bool[]>> top5 = posterior
-                .Support() // enumerate the histogram                
-                .OrderByDescending(k => k.Probability) // sorted by probability
-                .Take(5) // just top 5
-                .ToList(); // produce list
+        //        var output1 = data.Inference(new SequenceComparer<int>()).Support().OrderByDescending(k => k.Probability).ToList();
 
-            //var program = from bools in history
-            //              let sum = bools.Select(Convert.ToInt32).Sum()
-            //              from prior in new Gaussian(20, 0.01)
-            //              where sum == (int) prior
-            //              select bools;
-            //Uncertain<bool[]> posterior1 = program.SampledInference(10000, new BoolArrayEqualityComparer());
-
-            Func<bool[], bool[]> Intervalize = _ => _;
-
-            var program = from bools in data.USeq(N)
-                          select Intervalize(bools);
-
-            // now inspect by materializing a list
-            List < Weighted < bool[] >> top51 = posterior
-                .Support() // enumerate the histogram                
-                .OrderByDescending(k => k.Probability) // sorted by probability
-                .Take(5) // just top 5
-                .ToList(); // produce list
+        //        int x = 10;
+        //    }
 
 
-            // set breakpoint
-            int x = 10;
-        }
+        //    [TestMethod]
+        //    public void TestDan()
+        //    {
+        //        var r = new RandomMath();
+        //        int N = 50;
+        //        // Generate an array of independent estimates of whether a signal
+        //        // is high or low
+        //        Uncertain<bool>[] data = (from i in Enumerable.Range(0, N)
+        //                                  let noise = r.NextGaussian(0, 0.01)
+        //                                  let vad = i > 15 && i < 30 ? 0.9 : 0.1
+        //                                  let param = Math.Abs(vad + noise)
+        //                                  let f = new Bernoulli(param > 1 ? 1 : param)
+        //                                  select f).ToArray();
+        //        // history operator we chatted about
+        //        Uncertain<bool[]> history = data.USeq(N);
+
+        //        // Inference computes a weighted bool[] object: effectively a histogram
+        //        // The call to SampledInference needs to know (i) how many samples to take and how to compare bool[]
+        //        Uncertain<bool[]> posterior = history.SampledInference(10000, new SequenceComparer<bool>());
+
+        //        // now inspect by materializing a list
+        //        List<Weighted<bool[]>> top5 = posterior
+        //            .Support() // enumerate the histogram                
+        //            .OrderByDescending(k => k.Probability) // sorted by probability
+        //            .Take(5) // just top 5
+        //            .ToList(); // produce list
+
+        //        //var program = from bools in history
+        //        //              let sum = bools.Select(Convert.ToInt32).Sum()
+        //        //              from prior in new Gaussian(20, 0.01)
+        //        //              where sum == (int) prior
+        //        //              select bools;
+        //        //Uncertain<bool[]> posterior1 = program.SampledInference(10000, new BoolArrayEqualityComparer());
+
+        //        Func<bool[], bool[]> Intervalize = _ => _;
+
+        //        var program = from bools in data.USeq(N)
+        //                      select Intervalize(bools);
+
+        //        // now inspect by materializing a list
+        //        List < Weighted < bool[] >> top51 = posterior
+        //            .Support() // enumerate the histogram                
+        //            .OrderByDescending(k => k.Probability) // sorted by probability
+        //            .Take(5) // just top 5
+        //            .ToList(); // produce list
+
+
+        //        // set breakpoint
+        //        int x = 10;
+        //    }
+        //}
+
+        //public static class StreamExtensions
+        //{
+        //    public static IEnumerable<IEnumerable<Uncertain<T>>> History<T>(this IEnumerable<Uncertain<T>> source, int num)
+        //    {
+        //        return null;
+        //    }
+        //    public static IEnumerable<Uncertain<T[]>> History1<T>(this IEnumerable<Uncertain<T>> source, int num)
+        //    {
+        //        return null;
+        //    }
+        //}
+
+        //public class FunctionalList<T> : IEnumerable<T>
+        //{
+        //    // Creates a new list that is empty
+        //    public FunctionalList()
+        //    {
+        //        IsEmpty = true;
+        //    }
+        //    // Creates a new list containe value and a reference to tail
+        //    public FunctionalList(T head, FunctionalList<T> tail)
+        //    {
+        //        IsEmpty = false;
+        //        Head = head;
+        //        Tail = tail;
+        //    }
+        //    // Is the list empty?
+        //    public bool IsEmpty { get; private set; }
+        //    // Properties valid for a non-empty list
+        //    public T Head { get; private set; }
+        //    public FunctionalList<T> Tail { get; private set; }
+
+        //    public IEnumerator<T> GetEnumerator()
+        //    {
+        //        return FunctionalList.Helper<T>(this).GetEnumerator();
+        //    }
+
+        //    IEnumerator IEnumerable.GetEnumerator()
+        //    {
+        //        return FunctionalList.Helper<T>(this).GetEnumerator();
+        //    }
+        //}
+
+        //// Static class that provides nicer syntax for creating lists
+        //public static class FunctionalList
+        //{
+        //    public static FunctionalList<T> Empty<T>()
+        //    {
+        //        return new FunctionalList<T>();
+        //    }
+        //    public static FunctionalList<T> Cons<T>
+        //            (T head, FunctionalList<T> tail)
+        //    {
+        //        return new FunctionalList<T>(head, tail);
+        //    }
+
+        //    internal static IEnumerable<T> Helper<T>(FunctionalList<T> lst)
+        //    {
+        //        if (lst.IsEmpty) yield break;
+        //        yield return lst.Head;
+        //        foreach (var item in Helper(lst.Tail))
+        //            yield return item;
+        //    }
+
+        //    public static T[] ToArray<T>(FunctionalList<T> lst)
+        //    {
+        //        var array = Helper<T>(lst).ToArray();
+        //        return array;
+        //    }
+        //}
+
+        //public static class MyExtensions
+        //{
+        //    public static Uncertain<T[]> USeq<T>(this IEnumerable<Uncertain<T>> source, int num)
+        //    {
+        //        Uncertain<T[]> output = source.Take(num).Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
+        //            FunctionalList.Empty<T>(),
+        //            (i, j) =>
+        //            {
+        //                return from lst in i
+        //                       from sample in j
+        //                       select FunctionalList.Cons(sample, lst);
+        //            },
+        //            uncertainlst =>
+        //            {
+        //                return from sample in uncertainlst
+        //                       select sample.Reverse().ToArray();
+        //            });
+        //        return output;
+        //    }
+
+        //    public static Uncertain<T[]> MarkovModel<T>(this Uncertain<T[]> observations, Uncertain<T> init, Func<T, Uncertain<T>> transition, Func<T, Uncertain<T>> emission) where T : IEquatable<T>
+        //    {
+        //        Func<IEnumerable<T>, Uncertain<T[]>> RunOne = obs =>
+        //        {
+        //            var initlst = from prior in init
+        //                          select FunctionalList.Cons(prior, FunctionalList.Empty<T>());
+
+        //            return obs.Aggregate<T, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
+        //                initlst,
+        //                (list, obs_i) =>
+        //                {
+        //                    var program = from head in list
+        //                                  let state = head.Head
+        //                                  from next in transition(state)
+        //                                  from emit in emission(next)
+        //                                  where obs_i.Equals(emit)
+        //                                  select FunctionalList.Cons(next, head);
+        //                    return program;
+        //                },
+        //                uncertainlst =>
+        //                {
+        //                    return from sample in uncertainlst
+        //                           select sample.Reverse().Skip(1) /* skip prior */ .ToArray();
+        //                });
+        //        };
+
+        //        return from obs in observations
+        //               from result in RunOne(obs)
+        //               select result;
+
+        //        //Uncertain < T[] > output = observations.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
+        //        //    FunctionalList.Empty<T>(),
+        //        //    (i, j) =>
+        //        //    {
+        //        //        return from lst in i
+        //        //               from sample in j
+        //        //               select FunctionalList.Cons(sample, lst);
+        //        //    },
+        //        //    uncertainlst =>
+        //        //    {
+        //        //        return from sample in uncertainlst
+        //        //               select sample.Reverse().ToArray();
+        //        //    });
+        //        //return output;
+        //    }
+
+        //    public static Uncertain<R[]> USeq2<T, R>(this IEnumerable<Uncertain<T>> source, Func<T[], R[]> selector)
+        //    {
+        //        Uncertain<R[]> output = source.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<R[]>>(
+        //            FunctionalList.Empty<T>(),
+        //            (i, j) =>
+        //            {
+        //                return from lst in i
+        //                       from sample in j
+        //                       select FunctionalList.Cons(sample, lst);
+        //            },
+        //            uncertainlst =>
+        //            {
+        //                return from sample in uncertainlst
+        //                       let vec = sample.Reverse().ToArray()
+        //                       select selector(vec);
+        //            });
+        //        return output;
+        //    }
+
+        //}
+
+        //internal class SequenceComparer<T> : IEqualityComparer<T[]> where T : IComparable<T>
+        //{
+        //    public bool Equals(T[] x, T[] y)
+        //    {
+        //        if (object.ReferenceEquals(x, y))
+        //            return true;
+
+        //        if (x.Length != x.Length)
+        //            return false;
+
+        //        for (int i = 0; i < x.Length; i++)
+        //            if (!x[i].Equals(y[i]))
+        //                return false;
+        //        return true;
+        //    }
+
+        //    public int GetHashCode(T[] obj)
+        //    {
+        //        var hash = obj.Length;
+        //        for (int i = 0; i < obj.Length; i++)
+        //            hash ^= obj[i].GetHashCode();
+        //        return hash;
+        //    }
+        //}
     }
-
-    public static class StreamExtensions
-    {
-        public static IEnumerable<IEnumerable<Uncertain<T>>> History<T>(this IEnumerable<Uncertain<T>> source, int num)
-        {
-            return null;
-        }
-        public static IEnumerable<Uncertain<T[]>> History1<T>(this IEnumerable<Uncertain<T>> source, int num)
-        {
-            return null;
-        }
-    }
-
-    public class FunctionalList<T> : IEnumerable<T>
-    {
-        // Creates a new list that is empty
-        public FunctionalList()
-        {
-            IsEmpty = true;
-        }
-        // Creates a new list containe value and a reference to tail
-        public FunctionalList(T head, FunctionalList<T> tail)
-        {
-            IsEmpty = false;
-            Head = head;
-            Tail = tail;
-        }
-        // Is the list empty?
-        public bool IsEmpty { get; private set; }
-        // Properties valid for a non-empty list
-        public T Head { get; private set; }
-        public FunctionalList<T> Tail { get; private set; }
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            return FunctionalList.Helper<T>(this).GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return FunctionalList.Helper<T>(this).GetEnumerator();
-        }
-    }
-
-    // Static class that provides nicer syntax for creating lists
-    public static class FunctionalList
-    {
-        public static FunctionalList<T> Empty<T>()
-        {
-            return new FunctionalList<T>();
-        }
-        public static FunctionalList<T> Cons<T>
-                (T head, FunctionalList<T> tail)
-        {
-            return new FunctionalList<T>(head, tail);
-        }
-
-        internal static IEnumerable<T> Helper<T>(FunctionalList<T> lst)
-        {
-            if (lst.IsEmpty) yield break;
-            yield return lst.Head;
-            foreach (var item in Helper(lst.Tail))
-                yield return item;
-        }
-
-        public static T[] ToArray<T>(FunctionalList<T> lst)
-        {
-            var array = Helper<T>(lst).ToArray();
-            return array;
-        }
-    }
-
-    public static class MyExtensions
-    {
-        public static Uncertain<T[]> USeq<T>(this IEnumerable<Uncertain<T>> source, int num)
-        {
-            Uncertain<T[]> output = source.Take(num).Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
-                FunctionalList.Empty<T>(),
-                (i, j) =>
-                {
-                    return from lst in i
-                           from sample in j
-                           select FunctionalList.Cons(sample, lst);
-                },
-                uncertainlst =>
-                {
-                    return from sample in uncertainlst
-                           select sample.Reverse().ToArray();
-                });
-            return output;
-        }
-
-        public static Uncertain<T[]> MarkovModel<T>(this Uncertain<T[]> observations, Uncertain<T> init, Func<T, Uncertain<T>> transition, Func<T, Uncertain<T>> emission) where T : IEquatable<T>
-        {
-            Func<IEnumerable<T>, Uncertain<T[]>> RunOne = obs =>
-            {
-                var initlst = from prior in init
-                              select FunctionalList.Cons(prior, FunctionalList.Empty<T>());
-
-                return obs.Aggregate<T, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
-                    initlst,
-                    (list, obs_i) =>
-                    {
-                        var program = from head in list
-                                      let state = head.Head
-                                      from next in transition(state)
-                                      from emit in emission(next)
-                                      where obs_i.Equals(emit)
-                                      select FunctionalList.Cons(next, head);
-                        return program;
-                    },
-                    uncertainlst =>
-                    {
-                        return from sample in uncertainlst
-                               select sample.Reverse().Skip(1) /* skip prior */ .ToArray();
-                    });
-            };
-
-            return from obs in observations
-                   from result in RunOne(obs)
-                   select result;
-
-            //Uncertain < T[] > output = observations.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
-            //    FunctionalList.Empty<T>(),
-            //    (i, j) =>
-            //    {
-            //        return from lst in i
-            //               from sample in j
-            //               select FunctionalList.Cons(sample, lst);
-            //    },
-            //    uncertainlst =>
-            //    {
-            //        return from sample in uncertainlst
-            //               select sample.Reverse().ToArray();
-            //    });
-            //return output;
-        }
-
-        public static Uncertain<R[]> USeq2<T, R>(this IEnumerable<Uncertain<T>> source, Func<T[], R[]> selector)
-        {
-            Uncertain<R[]> output = source.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<R[]>>(
-                FunctionalList.Empty<T>(),
-                (i, j) =>
-                {
-                    return from lst in i
-                           from sample in j
-                           select FunctionalList.Cons(sample, lst);
-                },
-                uncertainlst =>
-                {
-                    return from sample in uncertainlst
-                           let vec = sample.Reverse().ToArray()
-                           select selector(vec);
-                });
-            return output;
-        }
-
-    }
-
-    internal class SequenceComparer<T> : IEqualityComparer<T[]> where T : IComparable<T>
-    {
-        public bool Equals(T[] x, T[] y)
-        {
-            if (object.ReferenceEquals(x, y))
-                return true;
-
-            if (x.Length != x.Length)
-                return false;
-
-            for (int i = 0; i < x.Length; i++)
-                if (!x[i].Equals(y[i]))
-                    return false;
-            return true;
-        }
-
-        public int GetHashCode(T[] obj)
-        {
-            var hash = obj.Length;
-            for (int i = 0; i < obj.Length; i++)
-                hash ^= obj[i].GetHashCode();
-            return hash;
-        }
-    }
-
 }

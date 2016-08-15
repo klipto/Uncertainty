@@ -28,6 +28,7 @@
 */
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -307,6 +308,114 @@ namespace Microsoft.Research.Uncertain.Inference
         {
             return new Where<T>(source, predicate);
         }
+
+
+
+        public class FunctionalList<T> : IEnumerable<T>
+        {
+            // Creates a new list that is empty
+            public FunctionalList()
+            {
+                IsEmpty = true;
+            }
+            // Creates a new list containe value and a reference to tail
+            public FunctionalList(T head, FunctionalList<T> tail)
+            {
+                IsEmpty = false;
+                Head = head;
+                Tail = tail;
+            }
+            // Is the list empty?
+            public bool IsEmpty { get; private set; }
+            // Properties valid for a non-empty list
+            public T Head { get; private set; }
+            public FunctionalList<T> Tail { get; private set; }
+
+            public IEnumerator<T> GetEnumerator()
+            {
+                return FunctionalList.Helper<T>(this).GetEnumerator();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return FunctionalList.Helper<T>(this).GetEnumerator();
+            }
+        }
+
+        // Static class that provides nicer syntax for creating lists
+        public static class FunctionalList
+        {
+            public static FunctionalList<T> Empty<T>()
+            {
+                return new FunctionalList<T>();
+            }
+            public static FunctionalList<T> Cons<T>
+                    (T head, FunctionalList<T> tail)
+            {
+                return new FunctionalList<T>(head, tail);
+            }
+
+            internal static IEnumerable<T> Helper<T>(FunctionalList<T> lst)
+            {
+                if (lst.IsEmpty) yield break;
+                yield return lst.Head;
+                foreach (var item in Helper(lst.Tail))
+                    yield return item;
+            }
+
+            public static T[] ToArray<T>(FunctionalList<T> lst)
+            {
+                var array = Helper<T>(lst).ToArray();
+                return array;
+            }
+        }
+
+        public static Uncertain<T[]> USeq<T>(this IEnumerable<Uncertain<T>> source)
+        {
+            Uncertain<T[]> output = source.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<T[]>>(
+                FunctionalList.Empty<T>(),
+                (i, j) =>
+                {
+                    return from lst in i
+                           from sample in j
+                           select FunctionalList.Cons(sample, lst);
+                },
+                uncertainlst =>
+                {
+                    return from sample in uncertainlst
+                           select sample.Reverse().ToArray();
+                });
+            return output;
+        }
+
+
+        public static Uncertain<R[]> USeq<T, R>(this IEnumerable<Uncertain<T>> source, Func<T[], R[]> selector)
+        {
+            Uncertain<R[]> output = source.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<R[]>>(
+                FunctionalList.Empty<T>(),
+                (i, j) =>
+                {
+                    return from lst in i
+                           from sample in j
+                           select FunctionalList.Cons(sample, lst);
+                },
+                uncertainlst =>
+                {
+                    return from sample in uncertainlst
+                           let vec = sample.Reverse().ToArray()
+                           select selector(vec);
+                });
+            return output;
+        }
+
+        //public static Uncertain<TResult> SelectMany<TSource, TCollection, TResult>(
+        //        this Uncertain<TSource> first,
+        //        Func<TSource, IEnumerable<TCollection>> collectionSelector,
+        //        Func<TSource, TCollection, TResult> resultSelector)
+        //{
+        //    return null;
+        //    //return new SelectMany<TSource, TCollection, TResult>(first, collectionSelector, resultSelector);
+        //}
 
         //TODO: implement inference via group by?
         //public static IEnumerable<Tuple<K, Uncertain<T>>> GroupBy<T, K>(this Uncertain<T> source, Func<T, K> keySelector) where K : IComparable

@@ -300,5 +300,28 @@ namespace UncertainTests
             Assert.IsFalse((isburglary == true).Pr());
             Assert.IsTrue((isburglary == false).Pr(0.9));
         }
+
+        [TestMethod]
+        public void TestMulti()
+        {
+            var program = from a in new FiniteEnumeration<int>(Enumerable.Range(0, 10).ToList())
+                          from b in new FiniteEnumeration<int>(Enumerable.Range(0, 10).ToList())
+                          select a + b;
+
+            var allpaths = program.Support().ToList();
+            var posterior = program.Inference().Support().OrderByDescending(p => p.Probability).ToList();
+
+
+            var sampledPosterior = program.SampledInference(10000).Support().OrderByDescending(p => p.Probability).ToList();
+
+            var test = program < 10;
+
+            if (test.Pr(0.5))
+            {
+                Console.WriteLine("Assertion is true");
+            }
+
+            int x = 10;
+        }
     }
 }

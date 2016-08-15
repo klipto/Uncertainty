@@ -444,20 +444,51 @@ namespace Microsoft.Research.Willis
 
             var interpreter = new Interpreter();
             
-            var program = from stmt in PossibleInterpretations3(new[] { 'a', 'b', 'c', '.', '*' }, "(.)(.)(.)", 4, false)
+            var program1 = from stmt in PossibleInterpretations3(new[] { 'a', 'b', 'c', '.', '*' }, "(.)(.)(.)", 4, false)
                           where System.Text.RegularExpressions.Regex.IsMatch(stmt, "\\*\\*") == false // causes interpreter to go into infinite loop                    
                           let re = new Parser(stmt).Parse()
                           let codes = new Compiler().Compile(re).ToList()
                           where examples.Select(e => Score(new Interpreter().Run(codes, e.Item1), e.Item2)).All(score => score)
                           select stmt;
 
+
+            var program2 = from stmt in PossibleInterpretations3(new[] { 'a', 'b', 'c', '.', '*' }, "(.)(.)(.)", 4, true)
+                           where System.Text.RegularExpressions.Regex.IsMatch(stmt, "\\*\\*") == false // causes interpreter to go into infinite loop                    
+                           let re = new Parser(stmt).Parse()
+                           let codes = new Compiler().Compile(re).ToList()
+                           where examples.Select(e => Score(new Interpreter().Run(codes, e.Item1), e.Item2)).All(score => score)
+                           select stmt;
+
             //var tmpf = p.SampledInference(100000).Support().OrderByDescending(pp => pp.Probability).Take(20).ToList();
-            var tmpf = program.Inference().Support().OrderByDescending(pp => pp.Probability).Take(20).ToList();
-            foreach (var i in tmpf)
+            //var tmpf = program.Inference().Support().OrderByDescending(pp => pp.Probability).Take(20).ToList();
+
+            var corrects = new[] { "(a*)(b*)(.)", "(a*)(.*)(.)", "(a*)(b*.)(.)", "(a*)(.*.)(.)" };
+
+            var tmp1 = program1.Support().ToList();
+            var tmp2 = program2.Support().ToList();
+
+            foreach (var correct in corrects)                
             {
-                Console.WriteLine(String.Format("{0} {1}", i.Value, i.Probability));
+                var a = tmp1.Where(i => i.Value == correct);
+                var b = tmp2.Where(i => i.Value == correct);
+
+                var suma = tmp1.Select(i => i.Probability).Sum();
+                var sumb = tmp2.Select(i => i.Probability).Sum();
+
+                //foreach (var pair in a.Zip(b,Tuple.Create))
+                //{
+                //    Console.WriteLine(String.Format("{0} {1} {2}", correct, pair.Item1.Probability, pair.Item2.Probability));
+                //}
+
+                Console.WriteLine();
             }
-            Console.WriteLine();
+
+
+            //foreach (var i in tmpf)
+            //{
+            //    Console.WriteLine(String.Format("{0} {1}", i.Value, i.Probability));
+            //}
+            //Console.WriteLine();
 
             foreach (var i in found)
             {
