@@ -1,0 +1,8 @@
+C:\Users\toddm\Source\Repos\Uncertainty\GPSWalking\obj\Debug\GPSWalking.csprojResolveAssemblyReference.cache
+C:\Users\toddm\Source\Repos\Uncertainty\GPSWalking\bin\Debug\GPSWalking.exe.config
+C:\Users\toddm\Source\Repos\Uncertainty\GPSWalking\bin\Debug\GPSWalking.exe
+C:\Users\toddm\Source\Repos\Uncertainty\GPSWalking\bin\Debug\GPSWalking.pdb
+C:\Users\toddm\Source\Repos\Uncertainty\GPSWalking\bin\Debug\Uncertain.dll
+C:\Users\toddm\Source\Repos\Uncertainty\GPSWalking\bin\Debug\Uncertain.pdb
+C:\Users\toddm\Source\Repos\Uncertainty\GPSWalking\obj\Debug\GPSWalking.exe
+C:\Users\toddm\Source\Repos\Uncertainty\GPSWalking\obj\Debug\GPSWalking.pdb
