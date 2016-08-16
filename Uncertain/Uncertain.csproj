@@ -49,6 +49,7 @@
     <Compile Include="Flip.cs" />
     <Compile Include="ForwardSampler.cs" />
     <Compile Include="Gaussian.cs" />
+    <Compile Include="Geometric.cs" />
     <Compile Include="Inference.cs" />
     <Compile Include="ISampler.cs" />
     <Compile Include="IUncertainVisitor.cs" />

@@ -44,7 +44,6 @@ namespace Microsoft.Research.Uncertain
         public FiniteEnumeration(IList<Weighted<T>> space)
         {
             this.sampleMap = new Dictionary<T, double>();
-
             var samples = new T[space.Count];
             var probs = new double[space.Count];
             for(int i = 0; i < space.Count; i++)

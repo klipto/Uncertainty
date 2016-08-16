@@ -97,16 +97,13 @@ namespace Microsoft.Research.Uncertain
         {
             selectmany.source.Accept(this);
             var a = (Weighted<TSource>)this.sample;
-
             var b = (selectmany.CollectionSelector.Compile())(a.Value);
             b.Accept(this);
             var c = (Weighted<TCollection>)this.sample;
-
             var result = (selectmany.ResultSelector.Compile())(a.Value, c.Value);
             result.Probability *= (a.Probability * c.Probability);
             this.sample = result;
         }
-
 
         public void Visit<T>(Inference<T> inference)
         {
