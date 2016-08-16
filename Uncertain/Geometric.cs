@@ -24,8 +24,7 @@ namespace Microsoft.Research.Uncertain
         {
             if (other is Geometric)
             {
-                var tmp = other as Geometric;
-                return tmp.p == this.p;
+                return (other as Geometric).p == this.p;
             }
 
             return false;
@@ -36,7 +35,7 @@ namespace Microsoft.Research.Uncertain
         }
         public override IEnumerable<Weighted<int>> GetSupport()
         {
-            throw new Exception("Infnite support");
+            throw new Exception("Infinite support");
         }
         public override int GetSample()
         {
