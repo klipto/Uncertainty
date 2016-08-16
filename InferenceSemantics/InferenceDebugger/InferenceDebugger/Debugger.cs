@@ -58,7 +58,6 @@ namespace InferenceDebugger
 
             var max_likelihoods_for_each_sample_size = from best_sample_of_fixed_size in best_samples_of_fixed_sizes
                                                        select Tuple.Create(best_sample_of_fixed_size.Key, StudentT.PDF(0, 1, best_sample_of_fixed_size.Key - 1, best_sample_of_fixed_size.Value.Item1), best_sample_of_fixed_size.Value.Item2);
-
             return max_likelihoods_for_each_sample_size;
         };
 
