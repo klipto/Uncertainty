@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 using Microsoft.Research.Uncertain;
 using Microsoft.Research.Uncertain.Inference;
+
 using System.Linq.Expressions;
+
 namespace InferenceDebugger
 {
     public class Visitor: IUncertainVisitor
@@ -64,9 +67,9 @@ namespace InferenceDebugger
 
         public void Visit<T>(Inference<T> inference)
         {
-            SamplingInformation sampling_information = new SamplingInformation(inference.GetType());           
+            //SamplingInformation sampling_information = new SamplingInformation(inference.GetType());           
             Console.Write("source type: "+inference.Source.GetType()+ "\n");
-            inference.Source.Accept(this);
+            inference.Source.Accept(this);        
         }
     }
 }
