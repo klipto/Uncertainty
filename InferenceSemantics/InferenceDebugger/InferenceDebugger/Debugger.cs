@@ -20,7 +20,7 @@ namespace InferenceDebugger
         {
             var all_values = sample.Inference().Support().ToList();
             var sample_mean = all_values.Select(i => (dynamic)i.Value).Aggregate((a, b) => a + b) / k ;            
-            var sample_variance = all_values.Select(i => Math.Pow((dynamic)i.Value - sample_mean, 2)).Aggregate((a,b)=>a+b) / (k - 1);
+            var sample_variance = all_values.Select(i => Math.Pow((dynamic)i.Value - sample_mean, 2)).Aggregate((a,b)=> a + b) / (k - 1);
             var SEM = Math.Sqrt((dynamic)sample_variance / k);
             var t_statistic = (sample_mean - population_mean) / SEM;
             return Tuple.Create(k, t_statistic, all_values);
@@ -65,8 +65,8 @@ namespace InferenceDebugger
         {
             int k = 0;
             int largest_sample_size = best_samples_of_fixed_size.OrderByDescending(i => i.Item1).ElementAt(0).Item1;
+            
             List<Tuple<double, int, double, List<Weighted<R>>>> normalized_sample_size = new List<Tuple<double, int, double, List<Weighted<R>>>>();
-
             foreach (var tuple in best_samples_of_fixed_size)
             {
                 double ratio = (double)largest_sample_size / (double)tuple.Item1;
@@ -75,7 +75,7 @@ namespace InferenceDebugger
             }
             var ordered_list_according_to_utility =
                 normalized_sample_size.OrderByDescending(i => i.Item3 * (double)(i.Item2 - 3) * Math.Pow(i.Item1, 1 / 2) / (double)(i.Item2 - 1)); //proportional to product of likelihood and inversely proprotional to variance which is (dof/dof-2)  
-
+            
             List<Tuple<double, double, int, double, List<Weighted<R>>>> utilities = new List<Tuple<double, double, int, double, List<Weighted<R>>>>();
             foreach (var tuple in ordered_list_according_to_utility)
             {

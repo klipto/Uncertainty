@@ -25,7 +25,7 @@ namespace SearchEngine
     {
         private static int number_of_machines = 3;
         // This is used by the  "central server" to prune the results of the other servers and return the final top-k.
-        private static double threshold = 0.3;
+      
         private static Dictionary<int, List<SampleData>> data_partitions_for_distributed_search = new Dictionary<int, List<SampleData>>();
 
         public struct ChosenDocument
@@ -33,7 +33,6 @@ namespace SearchEngine
             public Field field;
             public double picking_probability;
             public double exponential_bound;
-
             public override bool Equals(object obj)
             {
                 if (obj == null)
@@ -93,9 +92,11 @@ namespace SearchEngine
             return partitions;
         }
 
-        public static HashSet<ChosenDocument> finalSearch(int topk, Dictionary<int, Dictionary<Field, double>> score_probabilities, Dictionary<int, Dictionary<Field, double>> score_summaries,
+        public static HashSet<ChosenDocument> finalSearch(Dictionary<int, Dictionary<Field, double>> score_probabilities, Dictionary<int, Dictionary<Field, double>> score_summaries,
             HashSet<Uncertain<ChosenDocument[]>> uncertain_documents)
         {
+            var c_k = from k in new FiniteEnumeration<int>(new[] { 10, 11, 12 })
+                      select k;
             var s1 = uncertain_documents.ElementAt(0);
             var s2 = uncertain_documents.ElementAt(1);
             var s3 = uncertain_documents.ElementAt(2);
@@ -106,9 +107,15 @@ namespace SearchEngine
                                        let combined_output = o1.Concat(o2).Concat(o3)
                                        let sorted = combined_output.OrderByDescending(i => i.picking_probability).ToArray()
                                        select sorted;
-            Console.Write("central_K: " + topk + "\n");
+            
+            //Func<int, Uncertain<ChosenDocument[]>> F = (best_k) =>
+            //    from a in final_sampled_output.SampledInference(best_k)
+            //    select a;
+            // Here is an example of why the debugger should be run on ERPs. It is hard to know the distribution of every function of ERPs and hence it is hard to know the mean.
+            //var best_k = new UncertainTDebugger.Debugger<double>().Debug(, ___ , c_k);
+
             Console.Write("Central server's output with uncertainty: \n");
-            var result = final_sampled_output.SampledInference(topk).Support().ToArray();
+            var result = final_sampled_output.Inference().Support().ToArray();
             HashSet<ChosenDocument> result_set = new HashSet<ChosenDocument>();
             foreach (var r in result)
             {
@@ -137,7 +144,7 @@ namespace SearchEngine
             return result_set;
         }
 
-        public static HashSet<Uncertain<ChosenDocument[]>> distributedSearch(string query, int topk, Dictionary<int, Dictionary<Field, double>> score_summaries, Dictionary<int, Dictionary<Field, double>> score_probabilities)
+        public static HashSet<Uncertain<ChosenDocument[]>> distributedSearch(string query, Dictionary<int, Dictionary<Field, double>> score_summaries, Dictionary<int, Dictionary<Field, double>> score_probabilities)
         {
             HashSet<Uncertain<ChosenDocument[]>> uncertain_documents = new HashSet<Uncertain<ChosenDocument[]>>();
             int machine = 1;
@@ -151,7 +158,6 @@ namespace SearchEngine
                 double lambda_mle = 0.0;
                 HashSet<double> unique_normalized_score_reciprocals = new HashSet<double>();
                 string score_file = "scores" + machine.ToString() + ".txt";
-
                 using (StreamWriter sw = new StreamWriter(score_file))
                 {
                     Dictionary<Field, double> normalized_scores = new Dictionary<Field, double>();
@@ -170,7 +176,7 @@ namespace SearchEngine
                     {
                         Document doc = s.getDocument(hits[x].Doc);
                         double normalized_score = hits[x].Score / topDocs.MaxScore;
-                        // the minimum value of the reciprocal of a score is 1. To make the probabilities more meaningful, the origin is shifted to the right by 1. 
+                        //the minimum value of the reciprocal of a score is 1. To make the probabilities more meaningful, the origin is shifted to the right by 1. 
                         //double normalized_score_reciprocal = (topDocs.MaxScore / hits[x].Score)-1;                            
                         double normalized_score_reciprocal = (topDocs.MaxScore / hits[x].Score);
                         unique_normalized_score_reciprocals.Add(normalized_score_reciprocal);
@@ -190,83 +196,48 @@ namespace SearchEngine
                     {
                         document_probabilities.Add(key, exp.Score(((1 / normalized_scores[key]) - 1)));
                     }
-                    document_probabilities.OrderByDescending(entry => entry.Value);
-
-                    Uncertain<ChosenDocument[]> selected_documents = from exponential in exp
-                                                                     let docs = from entry in document_probabilities
-                                                                                let chosen_doc = new ChosenDocument { field = entry.Key, picking_probability = entry.Value, exponential_bound = exponential }
-                                                                                where entry.Value < exponential
-                                                                                orderby chosen_doc.picking_probability descending
-                                                                                select chosen_doc
-                                                                     select docs.ToArray();
-
+                    document_probabilities.OrderByDescending(entry => entry.Value); // finding the maximum likelihood.                     
+                    uncertain_documents = UncertainDocumentSelector(exp, document_probabilities);
                     score_summaries.Add(machine, normalized_scores);
                     score_probabilities.Add(machine, document_probabilities);
-
-                    uncertain_documents.Add(selected_documents.SampledInference(topk));
                     machine++;
-                    Console.Write("Finished\n");
-                    Console.Write("distributed_K: " + topk + "\n");
+                    Console.Write("Finished\n");                    
                 }
             }
             return uncertain_documents;
         }
-        public struct TmpStruct : IEqualityComparer<TmpStruct>
+        public static HashSet<Uncertain<ChosenDocument[]>> UncertainDocumentSelector(Microsoft.Research.Uncertain.Exponential exp, Dictionary<Field, double> document_probabilities)
         {
-            public int k1, k2;
-            public double yhatSqrd;
-
-            public bool Equals(TmpStruct x, TmpStruct y)
-            {
-                return x.k1 == y.k1 && x.k2 == y.k2;
-            }
-
-            public int GetHashCode(TmpStruct obj)
-            {
-                return obj.k1.GetHashCode() ^ obj.k2.GetHashCode();
-            }
-        }
-
-        public class MyTupleComparer : IComparer<Tuple<int, int>>
-        {
-            public int Compare(Tuple<int, int> x, Tuple<int, int> y)
-            {
-                return ((IComparable)x).CompareTo(y);
-            }
-        }
-
-        public static Weighted<T> Create<T>(T sample, double prob) 
-        {
-            return new Weighted<T>() { Value = sample, Probability = prob };
+            HashSet<Uncertain<ChosenDocument[]>> uncertain_documents = new HashSet<Uncertain<ChosenDocument[]>>();
+            var d_k = from k in new FiniteEnumeration<int>(new[] { 20, 50, 75, 100, 200, 250 })
+                      select k;   
+            Uncertain<ChosenDocument[]> selected_documents = from exponential in exp
+                                                             let docs = from entry in document_probabilities
+                                                                        let chosen_doc = new ChosenDocument { field = entry.Key, picking_probability = entry.Value, exponential_bound = exponential }
+                                                                        where entry.Value < exponential
+                                                                        orderby chosen_doc.picking_probability descending
+                                                                        select chosen_doc
+                                                             select docs.ToArray();
+            Func<int, Uncertain<ChosenDocument[]>> F = (best_k) => 
+                from a in selected_documents.SampledInference(best_k)
+                select a;
+            var best_d_k = new UncertainTDebugger.Debugger<double>().Debug(F,1/exp.Score(0),d_k); // using sample mean to estimate the population mean.
+            uncertain_documents.Add(selected_documents.SampledInference(best_d_k));
+            return uncertain_documents;
         }
         public static void Main(string[] args)
-        {  
+        {
             StreamReader datafile = new StreamReader(@"C:\Users\t-chnand\Desktop\Uncertainty\InferenceSemantics\SearchEngine\SearchEngine\dataset\Data1.txt");
             DataParser.ParseDataSet(datafile);
             data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
             string query = "learning";
-            var distributed_k = new FiniteEnumeration<int>(Enumerable.Range(20, 5).ToList());
-            var central_k = new FiniteEnumeration<int>(Enumerable.Range(10, 3).ToList());
             try
-            {
-                for (int times = 0; times < 1000; times++)
-                {
-                    var ks = from d_k in distributed_k
-                             from c_k in central_k
-                             let score_summaries = new Dictionary<int, Dictionary<Field, double>>()
-                             let score_probabilities = new Dictionary<int, Dictionary<Field, double>>()
-                             let uncertain_documents = new List<Uncertain<ChosenDocument[]>>()
-                             let distributed_search = distributedSearch(query, d_k, score_summaries, score_probabilities)
-                             let central_search = finalSearch(c_k, score_summaries, score_probabilities, distributed_search)
-                             where CorrectnessCondition(score_probabilities, central_search) == true
-                             select Tuple.Create(d_k, c_k);
-                    var res = ks.Inference().Support().OrderByDescending(i => i.Probability);
-                    foreach (var r in res)
-                    {
-                        Console.WriteLine(String.Format("{0} {1} {2}", r.Value.Item1, r.Value.Item2, r.Probability));
-                        //Console.Write("top k values: " + r.Value.Item1 + " : " + r.Value.Item2 + "\n");
-                    }
-                }
+            {           
+                var score_summaries = new Dictionary<int, Dictionary<Field, double>>();
+                var score_probabilities = new Dictionary<int, Dictionary<Field, double>>();
+                var uncertain_documents = new List<Uncertain<ChosenDocument[]>>();
+                var distributed_search = distributedSearch(query, score_summaries, score_probabilities);
+                var central_search = finalSearch(score_summaries, score_probabilities, distributed_search);                
             }
             catch (Exception e)
             {
@@ -274,7 +245,6 @@ namespace SearchEngine
             }
             Console.ReadKey();
         }
-
         internal static bool CorrectnessCondition(Dictionary<int, Dictionary<Field, double>> score_probabilities, HashSet<ChosenDocument> result_set)
         {
             HashSet<ChosenDocument> score_probability_list = new HashSet<ChosenDocument>();
@@ -286,7 +256,6 @@ namespace SearchEngine
                     score_probability_list.Add(document);
                 }
             }
-
             bool same = true;
             foreach (var v in score_probability_list)
             {
