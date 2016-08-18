@@ -1,4 +1,5 @@
 ﻿using Microsoft.Z3;
+using Reasoning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -142,16 +144,24 @@ namespace Reasoning
                 var ctr = t.GetConstructors().First();
                 var args = ctr.GetParameters().Select<ParameterInfo, object>(p =>
                 {
-                    var z3Exprs = (from i in this.parameters
-                                  where p.Name == i.Item1
-                                  select i.Item2);
-                    if (z3Exprs.Count() == 0)
+                    var anonProperties = from i in t.GetProperties()
+                                  where p.Name == i.Name
+                                  select i;
+                    if (anonProperties.Count() == 0)
                     {
                         throw new Exception(string.Format("Could not find formal parameter for anonymous type {0}. Make sure your Symbol<T> variable has the same name as the linq iteration variable!", p.Name));
                     }
 
-                    var z3Expr = z3Exprs.First();
-                    var assigned = model.Eval(z3Expr);
+                    var anonProperty = anonProperties.First();
+                    var field = anonProperty.GetValue(interpreted) as ISort; // require underlying properties are ISorts 
+
+                    if (field == null)
+                    {
+                        throw new NotImplementedException("I don't know how to convert a solution to your T" + t);
+                    }
+
+                    var assigned = model.Evaluate(field.Expr, true);
+                    // TODO: [toddm] factor out mapping from Z3 types to out types
                     if (assigned.IsInt)
                     {
                         return new Integer(this.context, ((IntNum)assigned));
@@ -207,7 +217,7 @@ namespace Reasoning
             linqtree.Accept(this);
             var interpreted = this.program;
 
-            var solver = this.context.MkSimpleSolver();
+            var solver = this.context.MkSolver();
 
             foreach (var constraint in this.constraints)
             {
@@ -1035,14 +1045,14 @@ namespace Reasoning
 
             var p2 = from cells in p.FromSequence()
 
-                         // build row level constraints
+                     // build row level constraints
                      let rows = from rowIndex in Enumerable.Range(0, 9)
-                                    // find all rows in rowIndex
+                                // find all rows in rowIndex
                                 let row = from i in Enumerable.Range(0, 81)
                                           where i / 9 == rowIndex
                                           select cells[i]
                                 select row.Distinct() // assert distinct
-                                                      // assert all rows must be distinct
+                     // assert all rows must be distinct
                      where rows.Aggregate((a, b) => a & b)
 
                      // ditto but for cols
@@ -1079,8 +1089,7 @@ namespace Reasoning
         {
             var a = from i in new Symbol<Integer>("i")
                     where i == 0
-                    let n = i + 1
-                    select new { i = n };
+                    select new { i = i + 1 };
 
             var b = from i in new Symbol<Integer>("i")
                     where i == 0
@@ -1099,8 +1108,42 @@ namespace Reasoning
             }
         }
 
+        private static void TestAnon()
+        {
+            var program0 = from x in new Symbol<Integer>("x")
+                           select new { x = x + 1, y = x };
+            using (var context = new Context())
+            {
+                var visitor = new LinqVisitor(context);
+                var result0 = visitor.Solve(program0);
+                int xx = 10;
+            }
+        }
+
+        public static void TestFlip()
+        {
+            var p = from a in new Symbol<Integer>("a")
+                    where a == 0 | a == 1
+                    from b in new Symbol<Integer>("b")
+                    where b == 0 | b == 1
+                    from c in new Symbol<Integer>("c")
+                    where c == 0 | c == 1
+                    //let likelihood = 0.5 * 0.5 * 0.5
+                    //new { value = a + b + c, likelihood };
+                    select a + b + c;
+
+            using (var context = new Context())
+            {
+                var visitor = new LinqVisitor(context);
+                var result0 = visitor.Solve(p);
+                int x = 10;
+            }
+        }
+
         public static void Main()
         {
+            TestFlip();
+            TestAnon();
             Testite();
             //Test();
             TestSudoku();
@@ -1137,5 +1180,328 @@ namespace Reasoning
                 int xx = 10;
             }
         }
+
     }
 }
+
+//namespace Willis2
+//{
+//    public class Parser
+//    {
+//        public interface RegularExpression : ISort
+//        {
+//        }
+
+//        //internal class Epsilon : RegularExpression
+//        //{
+//        //    public override string ToString()
+//        //    {
+//        //        return "epsilon";
+//        //    }
+//        //}
+//        internal class Primitive : RegularExpression
+//        {
+//            public Integer Lo { get; set; }
+//            public Integer Hi { get; set; }
+
+//            public Expr Expr
+//            {
+//                get
+//                {
+//                    throw new NotImplementedException();
+//                }
+
+//                set
+//                {
+//                    throw new NotImplementedException();
+//                }
+//            }
+
+//            public Context Context
+//            {
+//                get
+//                {
+//                    throw new NotImplementedException();
+//                }
+//            }
+
+//            //public override string ToString()
+//            //{
+//            //    if (this.Lo == this.Hi)
+//            //        return this.Lo.ToString();
+//            //    else
+//            //        return String.Format("[{0}-{1}]", this.Lo, this.Hi);
+//            //}
+//        }
+//        internal class Sequence : RegularExpression
+//        {
+//            public Context Context
+//            {
+//                get
+//                {
+//                    throw new NotImplementedException();
+//                }
+//            }
+
+//            public Expr Expr
+//            {
+//                get
+//                {
+//                    throw new NotImplementedException();
+//                }
+
+//                set
+//                {
+//                    throw new NotImplementedException();
+//                }
+//            }
+
+//            public RegularExpression Left { get; set; }
+//            public RegularExpression Right { get; set; }
+
+//            public override string ToString()
+//            {
+//                return String.Format("{0}{1}", this.Left.ToString(), this.Right.ToString());
+//            }
+//        }
+//        //internal class Group : RegularExpression
+//        //{
+//        //    public RegularExpression Re { get; set; }
+
+//        //    public override string ToString()
+//        //    {
+//        //        return this.Re.ToString();
+//        //    }
+//        //}
+//        //internal class Or : RegularExpression
+//        //{
+//        //    public RegularExpression Left { get; set; }
+//        //    public RegularExpression Right { get; set; }
+//        //    public override string ToString()
+//        //    {
+//        //        return String.Format("{0}|{1}", this.Left.ToString(), this.Right.ToString());
+//        //    }
+//        //}
+//        //internal class Star : RegularExpression
+//        //{
+//        //    public bool Greedy { get; set; }
+//        //    public RegularExpression Re { get; set; }
+//        //    public override string ToString()
+//        //    {
+//        //        return String.Format("({0})*{1}", this.Re.ToString(), this.Greedy ? "" : "?");
+//        //    }
+//        //}
+//        //internal class Question : RegularExpression
+//        //{
+//        //    public bool Greedy { get; set; }
+//        //    public RegularExpression Re { get; set; }
+//        //    public override string ToString()
+//        //    {
+//        //        return String.Format("({0})?{1}", this.Re.ToString(), this.Greedy ? "" : "?");
+//        //    }
+//        //}
+//        //internal class Plus : RegularExpression
+//        //{
+//        //    public bool Greedy { get; set; }
+//        //    public RegularExpression Re { get; set; }
+//        //    public override string ToString()
+//        //    {
+//        //        return String.Format("({0})+{1}", this.Re.ToString(), this.Greedy ? "" : "?");
+//        //    }
+//        //}
+
+//        //private string input;
+//        //private int counter;
+//        //private int pos;
+//        private Sort<Integer> mpos;
+//        private Context context;
+
+//        public Parser(string input)
+//        {
+//            //this.pos = 0;
+//            //this.input = input;
+//            //this.counter = 0;
+
+//            this.mpos = from i in new Symbol<Integer>("position")
+//                        where i == 0
+//                        select i;
+//            this.context = new Context();
+//        }
+
+//        private Sort<Integer> Peek()
+//        {
+//            return this.mpos;
+//        }
+
+//        private Sort<Integer> Eat(Integer item)
+//        {
+//            return
+//                from pos in this.Peek()
+//                where pos == item
+//                select pos + 1;
+//            //if (this.Peek() == item)
+//            //    this.pos++;
+//            //else
+//            //    throw new Exception(String.Format("Expected {0}; got {1}", item, this.Peek()));
+//        }
+
+//        private Sort<Integer> Next()
+//        {
+//            return
+//                from pos in this.Peek()
+//                from next in this.Eat(pos)
+//                select next;
+
+//            //var tmp = this.Peek();
+//            //this.Eat(tmp);
+//            //return tmp;
+//        }
+
+//        private Sort<Bool> More()
+//        {
+//            return
+//                from pos in this.mpos
+//                where pos < 3
+//                select pos < 3;
+//            //return this.pos < this.input.Length;
+//        }
+
+//        private Sort<RegularExpression> Atom()
+//        {
+//            var a = from item in this.Peek()
+//                    where item == '.'
+//                    select new Primitive { Lo = new Integer(context, context.MkInt(0)), Hi = new Integer(context, context.MkInt(256)) } as RegularExpression;
+
+//            var b = from item in this.Peek()
+//                    select new Primitive { Lo = item, Hi = item } as RegularExpression;
+
+//            var c = from item0 in this.Peek()
+//                    where item0 == '('
+//                    let tmp = this.Regexp()
+//                    from item1 in this.Peek()
+//                    where item1 == ')'
+//                    from i in tmp
+//                    select i;
+
+//            var all = a.Sequence(b).Sequence(c);
+
+
+
+//            switch (this.Peek())
+//            {
+//                case '(':
+//                    {
+//                        this.Eat('(');
+//                        var tmp = this.Regexp();
+//                        this.Eat(')');
+//                        return new Group { Re = tmp };
+//                    }
+//                case '[':
+//                    {
+//                        this.Eat('[');
+//                        var lo = this.Next();
+//                        this.Eat('-');
+//                        var hi = this.Next();
+//                        this.Eat(']');
+//                        return new Primitive { Lo = lo, Hi = hi, Id = this.counter++ };
+//                    }
+//                case '\\':
+//                    {
+//                        this.Eat('\\');
+//                        var escaped = this.Next();
+//                        return new Primitive { Lo = escaped, Hi = escaped, Id = this.counter++ };
+//                    }
+//                case '.':
+//                    {
+//                        this.Eat('.');
+//                        return new Primitive { Lo = Char.MinValue, Hi = Char.MaxValue, Id = this.counter++ };
+//                    }
+//                default:
+//                    {
+//                        var tmp = this.Next();
+//                        return new Primitive { Lo = tmp, Hi = tmp, Id = this.counter++ };
+//                    }
+//            }
+//        }
+//        private RegularExpression Factor()
+//        {
+//            var a = this.Atom();
+//            while (this.More() && (this.Peek() == '*' || this.Peek() == '?' || this.Peek() == '+'))
+//            {
+//                switch (this.Peek())
+//                {
+//                    case '*':
+//                        {
+//                            this.Eat('*');
+//                            var greedy = true;
+//                            if (this.More() && this.Peek() == '?')
+//                            {
+//                                greedy = false;
+//                                this.Eat('?');
+//                            }
+//                            a = new Star { Greedy = greedy, Re = a };
+//                            break;
+//                        }
+//                    case '?':
+//                        {
+//                            this.Eat('?');
+//                            var greedy = true;
+//                            if (this.More() && this.Peek() == '?')
+//                            {
+//                                greedy = false;
+//                                this.Eat('?');
+//                            }
+//                            a = new Question { Greedy = greedy, Re = a };
+//                            break;
+//                        }
+//                    case '+':
+//                        {
+//                            this.Eat('+');
+//                            var greedy = true;
+//                            if (this.More() && this.Peek() == '?')
+//                            {
+//                                greedy = false;
+//                                this.Eat('?');
+//                            }
+//                            a = new Plus { Greedy = greedy, Re = a };
+//                            break;
+//                        }
+//                }
+//            }
+
+//            return a;
+//        }
+//        private RegularExpression Term()
+//        {
+//            RegularExpression f = null;
+//            while (this.More() && this.Peek() != ')' && this.Peek() != '|')
+//            {
+//                var nextf = this.Factor();
+//                if (f == null)
+//                    f = nextf;
+//                else
+//                    f = new Sequence { Left = f, Right = nextf };
+//            }
+//            if (f == null)
+//                throw new Exception("Expected a term");
+//            return f;
+//        }
+//        private Sort<RegularExpression> Regexp()
+//        {
+//            return null;
+//            //var t = this.Term();
+//            //if (this.More() && this.Peek() == '|')
+//            //{
+//            //    this.Eat('|');
+//            //    var r = this.Regexp();
+//            //    return new Or { Left = t, Right = r };
+//            //}
+//            //return t;
+//        }
+
+//        public SortRegularExpression> Parse()
+//        {
+//            return this.Regexp();
+//        }
+//    }
+//}
