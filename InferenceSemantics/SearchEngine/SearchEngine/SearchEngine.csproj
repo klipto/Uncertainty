@@ -32,6 +32,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="InferenceDebugger">
+      <HintPath>..\..\InferenceDebugger\InferenceDebugger\bin\Debug\InferenceDebugger.dll</HintPath>
+    </Reference>
     <Reference Include="Lucene.Net">
       <HintPath>..\..\..\..\Apache-Lucene.Net-3.0.3-RC2.src\build\bin\core\Debug\NET40\Lucene.Net.dll</HintPath>
     </Reference>
@@ -48,9 +51,6 @@
     <Reference Include="System.Xml" />
     <Reference Include="Uncertain">
       <HintPath>..\..\..\Uncertain\bin\Debug\Uncertain.dll</HintPath>
-    </Reference>
-    <Reference Include="UncertainTDebugger">
-      <HintPath>..\..\..\..\..\Documents\Visual Studio 2013\Projects\UncertainTDebugger\UncertainTDebugger\bin\Debug\UncertainTDebugger.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

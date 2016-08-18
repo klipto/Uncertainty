@@ -221,7 +221,7 @@ namespace SearchEngine
             Func<int, Uncertain<ChosenDocument[]>> F = (best_k) => 
                 from a in selected_documents.SampledInference(best_k)
                 select a;
-            var best_d_k = new UncertainTDebugger.Debugger<double>().Debug(F,1/exp.Score(0),d_k); // using sample mean to estimate the population mean.
+            var best_d_k = new InferenceDebugger.Debugger<double>().Debug(F,1/exp.Score(0),d_k); // using sample mean to estimate the population mean.
             uncertain_documents.Add(selected_documents.SampledInference(best_d_k));
             return uncertain_documents;
         }
