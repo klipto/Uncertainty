@@ -7,12 +7,15 @@ namespace Microsoft.Research.Uncertain
 {
     public class Geometric: RandomPrimitive<int>
     {
-        private readonly double p;
+        protected double p { get; set; }
+
+       
         public Geometric (double p) 
         {
             this.p = p;
         }
 
+       
         public override double Score(int n)
         {
             if (n < 0)
@@ -39,7 +42,7 @@ namespace Microsoft.Research.Uncertain
         }
         public override int GetSample()
         {
-            var sample = Math.Log(Extensions.rand.NextDouble()/this.p) / Math.Log(1-this.p);
+            var sample = (Math.Log(1-Extensions.rand.NextDouble()) / Math.Log(1-this.p))-1;
             return (int)sample;
         }
     }

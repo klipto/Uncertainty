@@ -22,11 +22,13 @@ namespace InferenceDebuggerTests
         [TestMethod]
         public void TestContinuous()
         {
+            string file = "continuous_test.txt";
             Debugger<double> doubleDebugger = new Debugger<double>();
-            var hyper = from k1 in new FiniteEnumeration<int>(new[] { 150, 175, 200, 250, 275, 300, 350, 400, 500, 600 })
-                        select k1;
-            var topk = doubleDebugger.Debug(F, getMean(), hyper);
-            Assert.AreNotEqual(600, topk);
+            var hyper = from k1 in Debugger<double>.truncatedGeometric
+                        select Tuple.Create(k1, Debugger<double>.truncatedGeometric.Score(k1));
+            var k = doubleDebugger.Debug(F, getMean(), hyper);
+            Console.WriteLine(k);
+            Assert.AreNotEqual(600, k);
         }
     }
 }

@@ -68,6 +68,7 @@
     <Compile Include="PPLTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestScalarImplicature.cs" />
+    <Compile Include="TruncatedGeometricTest.cs" />
     <Compile Include="UniformTests.cs" />
     <Compile Include="BaseTests.cs" />
     <Compile Include="GaussianTests.cs" />

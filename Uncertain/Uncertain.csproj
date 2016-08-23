@@ -64,6 +64,7 @@
     <Compile Include="Rayleigh.cs" />
     <Compile Include="Select.cs" />
     <Compile Include="SelectMany.cs" />
+    <Compile Include="TruncatedGeometric.cs" />
     <Compile Include="Uncertain.cs" />
     <Compile Include="Uniform.cs" />
     <Compile Include="Weighted.cs" />

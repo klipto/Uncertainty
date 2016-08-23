@@ -26,10 +26,11 @@ namespace InferenceDebuggerTests
         public void TestDiscrete()
         {
             Debugger<int> intDebugger = new Debugger<int>();
-            var hyper = from k1 in new FiniteEnumeration<int>(new[] { 50, 75, 100, 200, 250 })
-                        select k1;
-            var topk = intDebugger.Debug(F1, getMean(), hyper);
-            Assert.AreNotEqual(50, topk);
+            var hyper = from k1 in Debugger<double>.truncatedGeometric
+                        select Tuple.Create(k1, Debugger<double>.truncatedGeometric.Score(k1));          
+            var k = intDebugger.Debug(F1, getMean(), hyper);
+            Console.WriteLine(k);
+            Assert.AreNotEqual(50, k);
         }
     }
 }
