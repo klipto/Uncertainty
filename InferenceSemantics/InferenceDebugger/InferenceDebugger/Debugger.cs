@@ -12,11 +12,16 @@ using MathNet.Numerics.Distributions;
 
 using System.Linq.Expressions;
 
-namespace InferenceDebugger
+namespace Microsoft.Research.Uncertain.InferenceDebugger
 {
     public class Debugger<R>
     {
-        public static TruncatedGeometric truncatedGeometric = new TruncatedGeometric(0.01, 10, 500);
+        public static TruncatedGeometric truncatedGeometric;
+
+        public Debugger(double p, int a, int b)
+        {
+            truncatedGeometric = new TruncatedGeometric(p, a, b);
+        }
         static Func<int, double, Uncertain<R>, Tuple<int, double, List<Weighted<R>>>> TVariateGenerator = (k, population_mean, sample) =>
         {
             var all_values = sample.Inference().Support().ToList();
@@ -72,8 +77,8 @@ namespace InferenceDebugger
                 double likelihood = tuple.Item2;
                 double variance_inverse = (double)(tuple.Item1 - 3) / (double)(tuple.Item1 - 1);
                 double ratio_l_var = likelihood * variance_inverse;
-                double k_likelihood_sqrt = Math.Sqrt(Math.Sqrt(truncatedGeometric.Score(tuple.Item1)));
-                double utility = Math.Pow(ratio_l_var, 8) * Math.Sqrt(k_likelihood_sqrt);
+                double k_likelihood_sqrt = (Math.Sqrt(truncatedGeometric.Score(tuple.Item1)));
+                double utility = Math.Pow(ratio_l_var, 4) * Math.Sqrt(k_likelihood_sqrt);
                 var newTuple = Tuple.Create(utility, tuple.Item1, tuple.Item2, tuple.Item3);
                 utilities.Add(newTuple);
             }

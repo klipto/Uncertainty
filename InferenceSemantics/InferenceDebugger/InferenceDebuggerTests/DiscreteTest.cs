@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Research.Uncertain.Inference;
 using Microsoft.Research.Uncertain;
 
-using InferenceDebugger;
+using Microsoft.Research.Uncertain.InferenceDebugger;
 
 namespace InferenceDebuggerTests
 {
@@ -25,9 +25,9 @@ namespace InferenceDebuggerTests
         [TestMethod]
         public void TestDiscrete()
         {
-            Debugger<int> intDebugger = new Debugger<int>();
-            var hyper = from k1 in Debugger<double>.truncatedGeometric
-                        select Tuple.Create(k1, Debugger<double>.truncatedGeometric.Score(k1));          
+            Debugger<int> intDebugger = new Debugger<int>(0.01, 10, 600);
+            var hyper = from k1 in Debugger<int>.truncatedGeometric
+                        select Tuple.Create(k1, Debugger<int>.truncatedGeometric.Score(k1));          
             var k = intDebugger.Debug(F1, getMean(), hyper);
             Console.WriteLine(k);
             Assert.AreNotEqual(50, k);

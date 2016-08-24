@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using Microsoft.Research.Uncertain;
 using Microsoft.Research.Uncertain.Inference;
 
+using Microsoft.Research.Uncertain.InferenceDebugger;
+
 using MathNet.Numerics.Statistics;
 using MathNet.Numerics.Distributions;
 
@@ -124,7 +126,6 @@ namespace SearchEngine
                     result_set.Add(v);
                 }
             }
-
             foreach (var v in result_set)
             {
                 Console.Write(v.field + " : " + v.picking_probability + "\n");
@@ -209,6 +210,7 @@ namespace SearchEngine
         public static HashSet<Uncertain<ChosenDocument[]>> UncertainDocumentSelector(Microsoft.Research.Uncertain.Exponential exp, Dictionary<Field, double> document_probabilities)
         {
             HashSet<Uncertain<ChosenDocument[]>> uncertain_documents = new HashSet<Uncertain<ChosenDocument[]>>();
+            Debugger<double> doubleDebugger = new Debugger<double>(0.01, 20, 250);
             var d_k = from k in new FiniteEnumeration<int>(new[] { 20, 50, 75, 100, 200, 250 })
                       select k;   
             Uncertain<ChosenDocument[]> selected_documents = from exponential in exp
@@ -221,7 +223,7 @@ namespace SearchEngine
             Func<int, Uncertain<ChosenDocument[]>> F = (best_k) => 
                 from a in selected_documents.SampledInference(best_k)
                 select a;
-            var best_d_k = new InferenceDebugger.Debugger<double>().Debug(F,1/exp.Score(0),d_k); // using sample mean to estimate the population mean.
+            var best_d_k = new Debugger<double>().Debug(F,1/exp.Score(0),Tuple.Create(d_k, Debugger<double>.truncatedGeometric.Score(d_k))); // using sample mean to estimate the population mean.
             uncertain_documents.Add(selected_documents.SampledInference(best_d_k));
             return uncertain_documents;
         }

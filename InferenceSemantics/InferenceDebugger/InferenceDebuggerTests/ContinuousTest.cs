@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Research.Uncertain;
 using Microsoft.Research.Uncertain.Inference;
 
-using InferenceDebugger;
+using Microsoft.Research.Uncertain.InferenceDebugger;
 
 namespace InferenceDebuggerTests
 {
@@ -23,7 +23,7 @@ namespace InferenceDebuggerTests
         public void TestContinuous()
         {
             string file = "continuous_test.txt";
-            Debugger<double> doubleDebugger = new Debugger<double>();
+            Debugger<double> doubleDebugger = new Debugger<double>(0.01, 10, 600);
             var hyper = from k1 in Debugger<double>.truncatedGeometric
                         select Tuple.Create(k1, Debugger<double>.truncatedGeometric.Score(k1));
             var k = doubleDebugger.Debug(F, getMean(), hyper);
