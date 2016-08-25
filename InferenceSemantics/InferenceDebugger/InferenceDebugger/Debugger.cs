@@ -14,32 +14,40 @@ using System.Linq.Expressions;
 
 namespace Microsoft.Research.Uncertain.InferenceDebugger
 {
-    public class Debugger<R>
+    public struct HyperParameterModel
     {
-        public static TruncatedGeometric truncatedGeometric;
-
-        public Debugger(double p, int a, int b)
+        public TruncatedGeometric truncatedGeometric;
+        public HyperParameterModel(double p, int a, int b)
         {
             truncatedGeometric = new TruncatedGeometric(p, a, b);
         }
-        static Func<int, double, Uncertain<R>, Tuple<int, double, List<Weighted<R>>>> TVariateGenerator = (k, population_mean, sample) =>
+    }
+    public class Debugger<R>
+    {
+        public HyperParameterModel hyperParameterModel;
+        public Debugger(double p, int a, int b)
+        {
+            hyperParameterModel = new HyperParameterModel(p, a, b);
+        }
+
+        static Func<int, double, Uncertain<R>, Tuple<int, double, List<Weighted<R>>, double>> TVariateGenerator = (k, population_mean, sample) =>
         {
             var all_values = sample.Inference().Support().ToList();
             var sample_mean = all_values.Select(i => (dynamic)i.Value).Aggregate((a, b) => a + b) / k;
             var sample_variance = all_values.Select(i => Math.Pow((dynamic)i.Value - sample_mean, 2)).Aggregate((a, b) => a + b) / (k - 1);
             var SEM = Math.Sqrt((dynamic)sample_variance / k);
             var t_statistic = (sample_mean - population_mean) / SEM;
-            return Tuple.Create(k, t_statistic, all_values);
+            return Tuple.Create(k, t_statistic, all_values, sample_variance);
         };
 
-        Func<double, Uncertain<Uncertain<R>>, IEnumerable<Tuple<int, double, List<Weighted<R>>>>> SameSampleSizeBestProgramSampler = (population_mean, p) =>
+        Func<double, double, Uncertain<Uncertain<R>>, IEnumerable<Tuple<int, double, List<Weighted<R>>, double, double>>> SameSampleSizeBestProgramSampler = (population_mean, population_stddev, p) =>
         {
-            var samples = p.SampledInference(100000).Support().ToList();
+            var samples = p.SampledInference(10000).Support().ToList();
             var t_variates = from sample in samples
                              where sample.Value.Inference().Support().ToList().Count > 0
                              let t = TVariateGenerator(sample.Value.Inference().Support().ToList().Count, population_mean, sample.Value)
                              select t;
-            List<Tuple<int, double, List<Weighted<R>>>> t_scores = new List<Tuple<int, double, List<Weighted<R>>>>();
+            List<Tuple<int, double, List<Weighted<R>>, double>> t_scores = new List<Tuple<int, double, List<Weighted<R>>, double>>();
             foreach (var t_variate in t_variates)
             {
                 if (t_variate.Item1 - 1 <= 0)
@@ -48,39 +56,43 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
                 }
                 else
                 {
-                    var t_score = Tuple.Create(t_variate.Item1, StudentT.PDF(0, 1, t_variate.Item1 - 1, t_variate.Item2), t_variate.Item3);
+                    var t_score = Tuple.Create(t_variate.Item1, StudentT.PDF(0, 1, t_variate.Item1 - 1, t_variate.Item2), t_variate.Item3, t_variate.Item4);
                     t_scores.Add(t_score);
                 }
             }
-            var sorted_tscores = t_scores.OrderByDescending(i => i.Item2).ToList();
-            Dictionary<int, Tuple<double, List<Weighted<R>>>> best_samples_of_fixed_sizes = new Dictionary<int, Tuple<double, List<Weighted<R>>>>();
+            var sorted_tscores = t_scores.OrderByDescending(i => i.Item2 / Math.Abs(Math.Sqrt(i.Item4) - population_stddev)).ToList();
+            Dictionary<int, Tuple<double, List<Weighted<R>>, double>> best_samples_of_fixed_sizes = new Dictionary<int, Tuple<double, List<Weighted<R>>, double>>();
             for (int x = 0; x < sorted_tscores.Count; x++)
             {
                 if (!best_samples_of_fixed_sizes.Keys.Contains(sorted_tscores[x].Item1))
                 {
-                    best_samples_of_fixed_sizes.Add(sorted_tscores[x].Item1, Tuple.Create(sorted_tscores[x].Item2, sorted_tscores[x].Item3));
+                    best_samples_of_fixed_sizes.Add(sorted_tscores[x].Item1, Tuple.Create(sorted_tscores[x].Item2, sorted_tscores[x].Item3, sorted_tscores[x].Item4));
                 }
                 else continue;
             }
 
             var max_likelihoods_for_each_sample_size = from best_sample_of_fixed_size in best_samples_of_fixed_sizes
-                                                       select Tuple.Create(best_sample_of_fixed_size.Key, StudentT.PDF(0.0, 1.0, (double)(best_sample_of_fixed_size.Key - 1), best_sample_of_fixed_size.Value.Item1), best_sample_of_fixed_size.Value.Item2);
+                                                       select Tuple.Create(best_sample_of_fixed_size.Key, StudentT.PDF(0.0, 1.0, (double)(best_sample_of_fixed_size.Key - 1), best_sample_of_fixed_size.Value.Item1), best_sample_of_fixed_size.Value.Item2,
+                                                       best_sample_of_fixed_size.Value.Item3, population_stddev);
             return max_likelihoods_for_each_sample_size;
         };
 
-        Func<IEnumerable<Tuple<int, double, List<Weighted<R>>>>, int> BestKSelector = (best_samples_of_fixed_size) =>
+        Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double, double>>, HyperParameterModel, int> BestKSelector = (best_samples_of_fixed_size, model) =>
         {
             int k = 0;
-            List<Tuple<double, int, double, List<Weighted<R>>>> utilities = new List<Tuple<double, int, double, List<Weighted<R>>>>();
+            string file = "utility_gaussian_example.txt";
+
+            List<Tuple<double, int, double, List<Weighted<R>>, double, double>> utilities = new List<Tuple<double, int, double, List<Weighted<R>>, double, double>>();
             foreach (var tuple in best_samples_of_fixed_size)
             {
                 double likelihood = tuple.Item2;
+                double stddev_difference_underlying_program = Math.Abs(Math.Sqrt(tuple.Item4) - tuple.Item5);
                 double variance_inverse = (double)(tuple.Item1 - 3) / (double)(tuple.Item1 - 1);
-                double ratio_l_var = likelihood * variance_inverse;
-                double k_likelihood_sqrt = (Math.Sqrt(truncatedGeometric.Score(tuple.Item1)));
+                double ratio_l_var = likelihood * variance_inverse / (stddev_difference_underlying_program);
+                double k_likelihood_sqrt = (Math.Sqrt(model.truncatedGeometric.Score(tuple.Item1)));
                 double utility = Math.Pow(ratio_l_var, 4) * Math.Sqrt(k_likelihood_sqrt);
-                var newTuple = Tuple.Create(utility, tuple.Item1, tuple.Item2, tuple.Item3);
-                utilities.Add(newTuple);
+                var newTuple = Tuple.Create(utility, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, stddev_difference_underlying_program);
+                utilities.Add(newTuple);               
             }
             var ordered_utilities = utilities.OrderByDescending(i => i.Item1);
             var max_utility = ordered_utilities.ElementAt(0).Item1;
@@ -95,17 +107,17 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             }
             k = best_utilities.OrderBy(i => i.Item2).ElementAt(0).Item2;
             return k;
+
         };
 
-        public int Debug<R>(Func<int, Uncertain<R>> program, double population_mean, Uncertain<Tuple<int, double>> hyper_params)
+        public int Debug<R>(HyperParameterModel model, Func<int, Uncertain<R>> program, double population_mean, double population_stddev, Uncertain<Tuple<int, double>> hyper_params)
         {
             var uncertain_program = from k1 in hyper_params
                                     let prog = program(k1.Item1)
                                     select prog;
-            var all_good_programs = SameSampleSizeBestProgramSampler(population_mean, (dynamic)uncertain_program);
-            var best_hyper_parameter = BestKSelector(all_good_programs);
+            var all_good_programs = SameSampleSizeBestProgramSampler(population_mean, population_stddev, (dynamic)uncertain_program);
+            var best_hyper_parameter = BestKSelector(all_good_programs, model);
             return best_hyper_parameter;
         }
     }
 }
-

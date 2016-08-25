@@ -55,7 +55,7 @@ namespace Microsoft.Research.Uncertain
         internal static Random rand;
         static Extensions()
         {
-            Extensions.rand = new Random();
+            Extensions.rand = new Random(0);
         }
         internal static double NextRandom()
         {

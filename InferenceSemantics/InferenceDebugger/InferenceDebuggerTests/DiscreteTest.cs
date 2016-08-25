@@ -21,14 +21,18 @@ namespace InferenceDebuggerTests
         {
             return BernoulliP;
         }
+        public static double getStddev()
+        {
+            return Math.Sqrt(BernoulliP*(1-BernoulliP));
+        }
 
         [TestMethod]
         public void TestDiscrete()
         {
-            Debugger<int> intDebugger = new Debugger<int>(0.01, 10, 600);
-            var hyper = from k1 in Debugger<int>.truncatedGeometric
-                        select Tuple.Create(k1, Debugger<int>.truncatedGeometric.Score(k1));          
-            var k = intDebugger.Debug(F1, getMean(), hyper);
+            Debugger<int> intDebugger = new Debugger<int>(0.001, 10, 1000);
+            var hyper = from k1 in intDebugger.hyperParameterModel.truncatedGeometric
+                        select Tuple.Create(k1, intDebugger.hyperParameterModel.truncatedGeometric.Score(k1));          
+            var k = intDebugger.Debug(intDebugger.hyperParameterModel, F1, getMean(), getStddev(), hyper);
             Console.WriteLine(k);
             Assert.AreNotEqual(50, k);
         }

@@ -18,15 +18,18 @@ namespace InferenceDebuggerTests
         {
             return 0;
         }
+        public static double getStddev()
+        {
+            return 1;
+        } 
 
         [TestMethod]
         public void TestContinuous()
-        {
-            string file = "continuous_test.txt";
+        {            
             Debugger<double> doubleDebugger = new Debugger<double>(0.01, 10, 600);
-            var hyper = from k1 in Debugger<double>.truncatedGeometric
-                        select Tuple.Create(k1, Debugger<double>.truncatedGeometric.Score(k1));
-            var k = doubleDebugger.Debug(F, getMean(), hyper);
+            var hyper = from k1 in doubleDebugger.hyperParameterModel.truncatedGeometric
+                        select Tuple.Create(k1, doubleDebugger.hyperParameterModel.truncatedGeometric.Score(k1));
+            var k = doubleDebugger.Debug(doubleDebugger.hyperParameterModel, F, getMean(), getStddev(), hyper);
             Console.WriteLine(k);
             Assert.AreNotEqual(600, k);
         }

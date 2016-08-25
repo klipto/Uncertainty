@@ -14,6 +14,12 @@ namespace UncertainTests
     public class TruncatedGeometricTest
     {
         [TestMethod]
+        public void Truncated_Sample2()
+        {
+            var s = new TruncatedGeometric(0.01, 10, 100);
+            Assert.IsFalse(s.GetSample() <= 10);
+        }
+        [TestMethod]
         public void testTruncated_Sample() 
         {
             var s = new Geometric(0.01).SampledInference(100).Support().ToList();

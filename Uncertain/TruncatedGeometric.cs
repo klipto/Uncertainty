@@ -9,31 +9,32 @@ namespace Microsoft.Research.Uncertain
     /**
      * A germetric distribution within a range (a,b]. This is used in the debugger to ensure that smaller sample sizes are preferred, by maximizing the likelihood.
      */
-    public class TruncatedGeometric: Geometric
+    public class TruncatedGeometric : Geometric
     {
         private readonly int a, b;
-
-        public TruncatedGeometric(double p, int a, int b): base(p)
-        {            
+        public TruncatedGeometric(double p, int a, int b)
+            : base(p)
+        {
             this.a = a;
-            this.b = b;            
+            this.b = b;
         }
 
         public double CDF(int n)
         {
-            return (1 - Math.Pow(1 - base.p, n+1));
+            return (1 - Math.Pow(1 - base.p, n + 1));
         }
+
 
         public override int GetSample()
         {
             if (b > a)
             {
-                var sample = (Math.Log(1-(Extensions.rand.NextDouble() * (CDF(b) - CDF(a)))) / Math.Log(1 - this.p))-1;
+                var sample = (Math.Log((Extensions.rand.NextDouble() * (CDF(a) - CDF(b)) / Math.Pow((1 - p), a)) + 1) / Math.Log(1 - p)) + a - 1;
                 return (int)(sample);
             }
             else if (a > b)
             {
-                var sample = (Math.Log(1 - (Extensions.rand.NextDouble() * (CDF(a) - CDF(b)))) / Math.Log(1 - this.p)) - 1;
+                var sample = (Math.Log((Extensions.rand.NextDouble() * (CDF(b) - CDF(a)) / Math.Pow((1 - p), b)) + 1) / Math.Log(1 - p)) + b - 1;
                 return (int)(sample);
             }
             else return 0;

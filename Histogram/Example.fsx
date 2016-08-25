@@ -5,11 +5,11 @@ open Microsoft.Research.Uncertain.Histogram
 
 let someDist = new HistogramUncertain<float> ([ (73.0, 0.8); (42.1, 0.15) ])
 
-// An uncertainty-unaware function.
+// An uncertainty-unaware function, double, which takes an argument, n.
 let double n = 2.0 * n
 
 // This won't type-check, of course:
-// let doubledDist = double someDist
+//let doubledDist = double someDist
 
 // But it does if we apply our combinator!
 let doubledDist = (Lifting.lift double) someDist
