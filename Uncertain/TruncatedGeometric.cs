@@ -27,14 +27,15 @@ namespace Microsoft.Research.Uncertain
 
         public override int GetSample()
         {
+            Random rand = new Random();
             if (b > a)
             {
-                var sample = (Math.Log((Extensions.rand.NextDouble() * (CDF(a) - CDF(b)) / Math.Pow((1 - p), a)) + 1) / Math.Log(1 - p)) + a - 1;
+                var sample = (Math.Log((rand.NextDouble() * (CDF(a) - CDF(b)) / Math.Pow((1 - p), a)) + 1) / Math.Log(1 - p)) + a - 1;
                 return (int)(sample);
             }
             else if (a > b)
             {
-                var sample = (Math.Log((Extensions.rand.NextDouble() * (CDF(b) - CDF(a)) / Math.Pow((1 - p), b)) + 1) / Math.Log(1 - p)) + b - 1;
+                var sample = (Math.Log((rand.NextDouble() * (CDF(b) - CDF(a)) / Math.Pow((1 - p), b)) + 1) / Math.Log(1 - p)) + b - 1;
                 return (int)(sample);
             }
             else return 0;

@@ -53,7 +53,7 @@ namespace Microsoft.Research.Uncertain
         }
         public override double GetSample()
         {
-            var sample = -this.lambda * Math.Log(Extensions.rand.NextDouble());
+            var sample = -(1/this.lambda) * Math.Log(1-Extensions.rand.NextDouble());
             return sample;
         }
 

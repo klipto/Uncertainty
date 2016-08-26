@@ -26,7 +26,7 @@ namespace InferenceDebuggerTests
         [TestMethod]
         public void TestContinuous()
         {            
-            Debugger<double> doubleDebugger = new Debugger<double>(0.01, 10, 600);
+            Debugger<double> doubleDebugger = new Debugger<double>(0.01, 100, 1000);
             var hyper = from k1 in doubleDebugger.hyperParameterModel.truncatedGeometric
                         select Tuple.Create(k1, doubleDebugger.hyperParameterModel.truncatedGeometric.Score(k1));
             var k = doubleDebugger.Debug(doubleDebugger.hyperParameterModel, F, getMean(), getStddev(), hyper);

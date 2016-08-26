@@ -42,7 +42,7 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
 
         Func<double, double, Uncertain<Uncertain<R>>, IEnumerable<Tuple<int, double, List<Weighted<R>>, double, double>>> SameSampleSizeBestProgramSampler = (population_mean, population_stddev, p) =>
         {
-            var samples = p.SampledInference(10000).Support().ToList();
+            var samples = p.SampledInference(1000000).Support().ToList();
             var t_variates = from sample in samples
                              where sample.Value.Inference().Support().ToList().Count > 0
                              let t = TVariateGenerator(sample.Value.Inference().Support().ToList().Count, population_mean, sample.Value)
@@ -76,7 +76,7 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
                                                        best_sample_of_fixed_size.Value.Item3, population_stddev);
             return max_likelihoods_for_each_sample_size;
         };
-
+        
         Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double, double>>, HyperParameterModel, int> BestKSelector = (best_samples_of_fixed_size, model) =>
         {
             int k = 0;
@@ -89,8 +89,8 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
                 double stddev_difference_underlying_program = Math.Abs(Math.Sqrt(tuple.Item4) - tuple.Item5);
                 double variance_inverse = (double)(tuple.Item1 - 3) / (double)(tuple.Item1 - 1);
                 double ratio_l_var = likelihood * variance_inverse / (stddev_difference_underlying_program);
-                double k_likelihood_sqrt = (Math.Sqrt(model.truncatedGeometric.Score(tuple.Item1)));
-                double utility = Math.Pow(ratio_l_var, 4) * Math.Sqrt(k_likelihood_sqrt);
+                double k_likelihood = ((model.truncatedGeometric.Score(tuple.Item1)));
+                double utility = Math.Pow(ratio_l_var, 1) * (k_likelihood);
                 var newTuple = Tuple.Create(utility, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, stddev_difference_underlying_program);
                 utilities.Add(newTuple);               
             }

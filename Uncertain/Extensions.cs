@@ -290,7 +290,7 @@ namespace Microsoft.Research.Uncertain.Inference
                                Value = item.Item1,
                                Probability = item.Item2 / numpaths
                            };
-            return new FiniteEnumeration<T>(weighted.ToList());
+            return new Multinomial<T>(weighted.ToList());
         }
 
         //public static Uncertain<T> Inference2<T>(this Uncertain<T> source, IEqualityComparer<T> comparer = null)
