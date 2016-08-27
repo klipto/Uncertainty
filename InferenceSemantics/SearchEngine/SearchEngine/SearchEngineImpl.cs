@@ -214,7 +214,7 @@ namespace SearchEngine
                select a;
             var hyper = from k in doubleDebugger.hyperParameterModel.truncatedGeometric
                         select Tuple.Create(k, doubleDebugger.hyperParameterModel.truncatedGeometric.Score(k));
-            var topk = doubleDebugger.Debug(doubleDebugger.hyperParameterModel, F, 1 / exp.Score(0), 1 / exp.Score(0), hyper);
+            var topk = doubleDebugger.Debug(doubleDebugger.hyperParameterModel, F, 1 / (double)exp.Score(0), hyper);
             if (topk > 0)
             {
                 for (int x = 0; x < topk; x++)
