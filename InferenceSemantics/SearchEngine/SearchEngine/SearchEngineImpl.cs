@@ -207,7 +207,12 @@ namespace SearchEngine
         }
         public static HashSet<ChosenDocument> TopkDocumentSelector(Microsoft.Research.Uncertain.Exponential exp, Dictionary<Field, double> document_probabilities)
         {
+            HashSet<double> probabilities = new HashSet<double>();
             HashSet<ChosenDocument> uncertain_documents = new HashSet<ChosenDocument>();
+            foreach() 
+            {
+
+            }
             Debugger<double> doubleDebugger = new Debugger<double>(0.01, 1, document_probabilities.Count);
             Func<int, Uncertain<double>> F = (k1) =>
                from a in exp.SampledInference(k1)
@@ -230,7 +235,8 @@ namespace SearchEngine
             DataParser.ParseDataSet(datafile);
             List<Tuple<string, int, Dictionary<int, Dictionary<Field, double>>>> result_count = new List<Tuple<string,int,Dictionary<int,Dictionary<Field,double>>>>();
             data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
-            string[] queries = {"algorithm", "artificial" , "machine"  ,"learning", "train", "statistics", "automatic"};
+            string[] queries = {//"algorithm", "artificial" , "machine"  ," machine learning", "train", 
+                                   "stochastic search"};//, "automatic"};
             foreach (var query in queries)
             {
                 try
