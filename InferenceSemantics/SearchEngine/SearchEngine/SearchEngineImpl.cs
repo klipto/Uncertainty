@@ -139,6 +139,7 @@ namespace SearchEngine
                 {
                     Dictionary<Field, double> normalized_scores = new Dictionary<Field, double>();
                     Dictionary<Field, double> document_probabilities = new Dictionary<Field, double>();
+                    Dictionary<Field, double> probabilities_documents = new Dictionary<Field, Double>();
                     Console.Write("\nMachine " + machine + " building indexes\n");
                     Index indexer = new Index();
                     indexer.rebuildIndex(data_partition.Value);
@@ -173,23 +174,34 @@ namespace SearchEngine
                      string file = "searchengine_probabilities.txt";
                      using (StreamWriter sw1 = new StreamWriter(file))
                      {
-                       int counter = 1;
+                       //int counter = 1;
                         foreach (var key in normalized_scores.Keys)
                         {
-                            document_probabilities.Add(key, exp.Score(((1 / normalized_scores[key]) - 1)));
-                            if (machine == 1)
+
+                            document_probabilities.Add(key, exp.Score(((double)(1 / normalized_scores[key]) - 1)));
+                            if (!probabilities_documents.ContainsValue(exp.Score(((double)(1 / normalized_scores[key]) - 1))))
                             {
-                                sw1.WriteLine(counter + " " +exp.Score(((1 / normalized_scores[key]) - 1)));
-                                counter++;
+                                probabilities_documents.Add(key, exp.Score(((double)(1 / normalized_scores[key]) - 1)));
                             }
                         }
+                        //foreach (var k in probabilities_documents.Keys)
+                        //{
+                        //    if (machine == 1)
+                        //    {
+                        //        sw1.WriteLine(probabilities_documents[k].ToString().Substring(30) + " " + k);
+                        //        counter++;
+                        //    }
+                        //}
                     }
                     document_probabilities.OrderByDescending(entry => entry.Value); // finding the scores with maximum likelihood.  
+                    probabilities_documents.OrderByDescending(entry => entry.Value);
                     score_summaries.Add(machine, normalized_scores);
-                    score_probabilities.Add(machine, document_probabilities);
+                    //score_probabilities.Add(machine, document_probabilities);
+                    score_probabilities.Add(machine, probabilities_documents);
                     if (document_probabilities.Count > 2)
                     {
-                        topk_uncertain_documents = TopkDocumentSelector(exp, document_probabilities);
+                        //topk_uncertain_documents = TopkDocumentSelector(exp, document_probabilities);
+                        topk_uncertain_documents = TopkDocumentSelector(exp, probabilities_documents);
                     }
                     //else if (document_probabilities.Count <= 2) // if there are very few matches, then return them all (this is a hack for now).
                     //{
@@ -209,17 +221,15 @@ namespace SearchEngine
         {
             HashSet<double> probabilities = new HashSet<double>();
             HashSet<ChosenDocument> uncertain_documents = new HashSet<ChosenDocument>();
-            foreach() 
-            {
-
-            }
+            
             Debugger<double> doubleDebugger = new Debugger<double>(0.01, 1, document_probabilities.Count);
             Func<int, Uncertain<double>> F = (k1) =>
                from a in exp.SampledInference(k1)
                select a;
             var hyper = from k in doubleDebugger.hyperParameterModel.truncatedGeometric
                         select Tuple.Create(k, doubleDebugger.hyperParameterModel.truncatedGeometric.Score(k));
-            var topk = doubleDebugger.Debug(doubleDebugger.hyperParameterModel, F, 1 / (double)exp.Score(0), hyper);
+            //var topk = doubleDebugger.DebugSampleSize(doubleDebugger.hyperParameterModel, F, 1 / (double)exp.Score(0), hyper);            
+            var topk = doubleDebugger.DebugTopk(doubleDebugger.hyperParameterModel, F, 0 ,1 / (double)exp.Score(0), hyper, exp);
             if (topk > 0)
             {
                 for (int x = 0; x < topk; x++)
@@ -236,14 +246,13 @@ namespace SearchEngine
             List<Tuple<string, int, Dictionary<int, Dictionary<Field, double>>>> result_count = new List<Tuple<string,int,Dictionary<int,Dictionary<Field,double>>>>();
             data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
             string[] queries = {//"algorithm", "artificial" , "machine"  ," machine learning", "train", 
-                                   "stochastic search"};//, "automatic"};
+                                   "learning"};//, "automatic"};
             foreach (var query in queries)
             {
                 try
                 {
                     var score_summaries = new Dictionary<int, Dictionary<Field, double>>();
-                    var score_probabilities = new Dictionary<int, Dictionary<Field, double>>();
-                    var uncertain_documents = new List<Uncertain<ChosenDocument[]>>();
+                    var score_probabilities = new Dictionary<int, Dictionary<Field, double>>();                    
                     var distributed_search = distributedSearch(query, score_summaries, score_probabilities);
                     var central_search = finalSearch(score_summaries, score_probabilities, distributed_search);
                     result_count.Add(Tuple.Create(query, central_search.Item1.Count, central_search.Item2));
@@ -254,32 +263,6 @@ namespace SearchEngine
                 }
             }
             Console.ReadKey();
-        }
-        internal static bool CorrectnessCondition(Dictionary<int, Dictionary<Field, double>> score_probabilities, HashSet<ChosenDocument> result_set)
-        {
-            HashSet<ChosenDocument> score_probability_list = new HashSet<ChosenDocument>();
-            foreach (var key in score_probabilities.Keys)
-            {
-                foreach (var key1 in score_probabilities[key].Keys)
-                {
-                    ChosenDocument document = new ChosenDocument { field = key1, exponential_bound = 0, picking_probability = score_probabilities[key][key1] };
-                    score_probability_list.Add(document);
-                }
-            }
-            bool same = true;
-            foreach (var v in score_probability_list)
-            {
-                if (result_set.Contains(v))
-                {
-                    continue;
-                }
-                else
-                {
-                    same = false;
-                    break;
-                }
-            }
-            return same;
-        }
+        }        
     }
 }

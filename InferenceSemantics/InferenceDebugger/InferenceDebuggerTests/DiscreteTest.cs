@@ -28,7 +28,7 @@ namespace InferenceDebuggerTests
             Debugger<int> intDebugger = new Debugger<int>(0.001, 10, 1000);
             var hyper = from k1 in intDebugger.hyperParameterModel.truncatedGeometric
                         select Tuple.Create(k1, intDebugger.hyperParameterModel.truncatedGeometric.Score(k1));          
-            var k = intDebugger.Debug(intDebugger.hyperParameterModel, F1, getMean(), hyper);
+            var k = intDebugger.DebugSampleSize(intDebugger.hyperParameterModel, F1, getMean(), hyper);
             Console.WriteLine(k);
             Assert.IsFalse(10 <= k);
         }
