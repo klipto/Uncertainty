@@ -34,7 +34,8 @@ namespace LinearRegression
                     yhat += weights[j] * x[i][j];
                 }
 
-                likelihood += Gaussian.Likelihood(yhat, y[i], sigma);
+                Gaussian g = new Gaussian(y[i], sigma);
+                likelihood += g.Score(yhat);
             }
             return likelihood / (double)x.Length;
         }
@@ -57,7 +58,8 @@ namespace LinearRegression
             Func<double[], double, double> Score1 = (weights, sigma) => (from i in Enumerable.Range(0, N)
                                                                          let yhat = (from j in Enumerable.Range(0, F + 1)
                                                                                      select weights[j] * x[i][j]).Sum()
-                                                                         let likelihood = Gaussian.Likelihood(yhat, y[i], sigma)
+                                                                                     let g1 = new Gaussian(y[i], sigma)                                                                                     
+                                                                                     let likelihood = g1.Score(yhat)
                                                                          select likelihood).Sum();
 
             Func<double[], double, double> Error = (weights, sigma) => (from i in Enumerable.Range(0, N)
