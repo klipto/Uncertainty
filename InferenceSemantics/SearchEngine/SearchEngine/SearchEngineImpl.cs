@@ -174,7 +174,7 @@ namespace SearchEngine
                      string file = "searchengine_probabilities.txt";
                      using (StreamWriter sw1 = new StreamWriter(file))
                      {
-                       //int counter = 1;
+                       int counter = 1;
                         foreach (var key in normalized_scores.Keys)
                         {
 
@@ -184,14 +184,14 @@ namespace SearchEngine
                                 probabilities_documents.Add(key, exp.Score(((double)(1 / normalized_scores[key]) - 1)));
                             }
                         }
-                        //foreach (var k in probabilities_documents.Keys)
-                        //{
-                        //    if (machine == 1)
-                        //    {
-                        //        sw1.WriteLine(probabilities_documents[k].ToString().Substring(30) + " " + k);
-                        //        counter++;
-                        //    }
-                        //}
+                        foreach (var k in probabilities_documents.Keys)
+                        {
+                            if (machine == 1)
+                            {
+                                sw1.WriteLine(counter + " " + probabilities_documents[k]);
+                                counter++;
+                            }
+                        }
                     }
                     document_probabilities.OrderByDescending(entry => entry.Value); // finding the scores with maximum likelihood.  
                     probabilities_documents.OrderByDescending(entry => entry.Value);
@@ -245,8 +245,7 @@ namespace SearchEngine
             DataParser.ParseDataSet(datafile);
             List<Tuple<string, int, Dictionary<int, Dictionary<Field, double>>>> result_count = new List<Tuple<string,int,Dictionary<int,Dictionary<Field,double>>>>();
             data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
-            string[] queries = {//"algorithm", "artificial" , "machine"  ," machine learning", "train", 
-                                   "learning"};//, "automatic"};
+            string[] queries = {"algorithm", "artificial" , "machine"  ," machine learning", "train", "automatic"};
             foreach (var query in queries)
             {
                 try
