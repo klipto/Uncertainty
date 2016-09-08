@@ -230,9 +230,9 @@ namespace SearchEngine
                         select Tuple.Create(k, doubleDebugger.hyperParameterModel.truncatedGeometric.Score(k));
             //var topk = doubleDebugger.DebugSampleSize(doubleDebugger.hyperParameterModel, F, 1 / (double)exp.Score(0), hyper);            
             var topk = doubleDebugger.DebugTopk(doubleDebugger.hyperParameterModel, F, 0 ,1 / (double)exp.Score(0), hyper, exp);
-            if (topk > 0)
+            if (topk.Item1 > 0)
             {
-                for (int x = 0; x < topk; x++)
+                for (int x = 0; x < topk.Item1; x++)
                 {
                     uncertain_documents.Add(new ChosenDocument { field = document_probabilities.ElementAt(x).Key, picking_probability = document_probabilities.ElementAt(x).Value });
                 }

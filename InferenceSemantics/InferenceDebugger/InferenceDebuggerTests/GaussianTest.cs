@@ -18,16 +18,16 @@ namespace InferenceDebuggerTests
         {
             return 0;
         }
-        
+
         [TestMethod]
         public void TestGaussian()
-        {            
+        {
             Debugger<double> doubleDebugger = new Debugger<double>(0.01, 100, 1000);
             var hyper = from k1 in doubleDebugger.hyperParameterModel.truncatedGeometric
                         select Tuple.Create(k1, doubleDebugger.hyperParameterModel.truncatedGeometric.Score(k1));
             var k = doubleDebugger.DebugSampleSize(doubleDebugger.hyperParameterModel, F, getMean(), hyper);
-            Console.WriteLine(k);
-            Assert.IsFalse(k < 1000);
+            Console.WriteLine(k.Item1);
+            Assert.IsFalse(k.Item1 < 1000);
         }
     }
 }

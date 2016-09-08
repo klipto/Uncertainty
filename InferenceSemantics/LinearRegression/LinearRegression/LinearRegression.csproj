@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>bd6f7d81-449d-481f-a806-f45670f34764</ProjectGuid>
+    <ProjectGuid>{858C0F79-97FC-4698-9620-0E97B014E6D7}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>LinearRegression</RootNamespace>

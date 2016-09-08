@@ -73,10 +73,7 @@
       <HintPath>..\..\SearchEngine\SearchEngine\bin\Debug\Lucene.Net.dll</HintPath>
     </Reference>
     <Reference Include="MathNet.Numerics">
-      <HintPath>..\packages\MathNet.Numerics.3.12.0\lib\net40\MathNet.Numerics.dll</HintPath>
-    </Reference>
-    <Reference Include="SearchEngine">
-      <HintPath>..\..\SearchEngine\SearchEngine\bin\Debug\SearchEngine.exe</HintPath>
+      <HintPath>..\..\..\..\..\mathnet-numerics\obj\lib-debug\Net40\MathNet.Numerics.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -86,21 +83,15 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="Uncertain, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Uncertain\bin\Debug\Uncertain.dll</HintPath>
+    <Reference Include="Uncertain">
+      <HintPath>..\..\..\Uncertain\obj\Debug\Uncertain.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="PDFScoreFunctions.cs" />
     <Compile Include="Debugger.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SamplingInformation.cs" />
     <Compile Include="Visitor.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">
@@ -118,6 +109,9 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

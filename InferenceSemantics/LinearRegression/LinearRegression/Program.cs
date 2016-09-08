@@ -1,4 +1,4 @@
-﻿using libsvm;
+﻿﻿using libsvm;
 using MathNet.Numerics.LinearAlgebra;
 using System;
 using System.Collections.Generic;
@@ -15,25 +15,35 @@ namespace LinearRegression
 {
     class Program
     {
-        private static void BayesianTrain(Matrix<Single> X, Matrix<Single> Y)
+        private static void BayesianTrain(Matrix<double> X, Matrix<double> Y)
         {
-            float a = 0.5F;
-            float noise_sigma = 1;
-            var I = Matrix<float>.Build.DenseIdentity(X.ColumnCount, X.ColumnCount);
-            var S0 = Matrix<float>.Build.Dense(X.ColumnCount, X.ColumnCount);
-            I.DivideByThis(a, S0);
-            var aI = Matrix<float>.Build.Dense(X.ColumnCount, X.ColumnCount);
-            I.DivideByThis((1 / a), aI);
-            var intermediate = aI + noise_sigma * X.TransposeThisAndMultiply(X);
-            var mu = (intermediate.Inverse()) * noise_sigma * (X.TransposeThisAndMultiply(Y));
+            double lambda = 0.5;
+            double noise_sigma_square = 1;
+            var mu = (lambda * Matrix<double>.Build.SparseIdentity(X.ColumnCount, X.ColumnCount) + X.TransposeThisAndMultiply(X)).Inverse() * X.Transpose() * Y;
+            Matrix<double> s = noise_sigma_square * (X.TransposeThisAndMultiply(X) +
+                (lambda * Matrix<double>.Build.SparseIdentity(X.ColumnCount, X.ColumnCount))).Inverse();
+            var I = Matrix<double>.Build.Sparse(1, 1, 1);
 
+            Func<int, Uncertain<Matrix<Double>>> F = (k) =>
+                from a in new Microsoft.Research.Uncertain.MultivariateNormal(mu, s, I).SampledInference(k) // p(w|y)~N(mu, s)
+                select a;
+
+            Debugger<Matrix<double>> doubleDebugger = new Debugger<Matrix<double>>(0.01, 100, 1000);
+            //var hyper = from k1 in doubleDebugger.hyperParameterModel.truncatedGeometric
+            //            select Tuple.Create(k1, doubleDebugger.hyperParameterModel.truncatedGeometric.Score(k1));
+            //var KValue = doubleDebugger.DebugSampleSizeComplex(doubleDebugger.hyperParameterModel, F, mu, hyper);
+
+            //Matrix<double> weight_sample = w.GetSample(); // sample from this posterior 
+            //var I_noise = Matrix<double>.Build.SparseIdentity(X.RowCount, X.RowCount); 
+            //var y_posterior_predictive_distribution = new MathNet.Numerics.Distributions.MatrixNormal(X * weight_sample, I_noise, I);
+            //var prediction = y_posterior_predictive_distribution.Sample();            
         }
-        private static Matrix<Single> Train(Matrix<Single> X, Matrix<Single> Y)
+
+        private static Matrix<double> Train(Matrix<double> X, Matrix<double> Y)
         {
             Contract.Requires(X.RowCount == Y.RowCount);
-
             var alpha = 0.0001F;
-            var w = Matrix<Single>.Build.Dense(X.ColumnCount, Y.ColumnCount, 0F);
+            var w = Matrix<double>.Build.Dense(X.ColumnCount, Y.ColumnCount, 0F);
             var rand = new Random(0);
 
             var count = 0;
@@ -47,7 +57,6 @@ namespace LinearRegression
                 var yi = Y.Row(index).ToColumnMatrix();
 
                 w -= alpha * xi * (xi.TransposeThisAndMultiply(w) - yi);
-
                 if (count % 1000 == 0)
                 {
                     var tmp = (X * w - Y);
@@ -55,21 +64,19 @@ namespace LinearRegression
                     Console.WriteLine(error);
                 }
             }
-
-
             return w;
         }
         static void Main(string[] args)
         {
-            var TRAINING_FILE = "rcv1_train.binary";
+            var TRAINING_FILE = "ijcnn1";
             var data = ProblemHelper.ReadAndScaleProblem(TRAINING_FILE);
             var numexamples = data.l;
             var numfeatures = (from example in data.x
                                from column in example
                                select column.index).Max() + 1;
 
-            var X = Matrix<Single>.Build.Sparse(numexamples, numfeatures);
-            var Y = Matrix<Single>.Build.Dense(numexamples, 1);
+            var X = Matrix<double>.Build.Sparse(numexamples, numfeatures);
+            var Y = Matrix<double>.Build.Dense(numexamples, 1);
 
             for (int i = 0; i < data.l; i++)
             {
@@ -79,11 +86,9 @@ namespace LinearRegression
                 }
                 Y[i, 0] = (float)data.y[i];
             }
-
-            var w = Train(X, Y);
             BayesianTrain(X, Y);
+            var w = Train(X, Y);
+
         }
     }
 }
-
-

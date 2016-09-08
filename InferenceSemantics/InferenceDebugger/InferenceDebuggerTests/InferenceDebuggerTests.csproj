@@ -40,7 +40,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="Uncertain">
-      <HintPath>..\InferenceDebugger\bin\Debug\Uncertain.dll</HintPath>
+      <HintPath>..\..\..\Uncertain\obj\Debug\Uncertain.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Choose>
@@ -59,7 +59,9 @@
     <Compile Include="DiscreteTest.cs" />
     <Compile Include="ExponentialTest.cs" />
     <Compile Include="GaussianTest.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

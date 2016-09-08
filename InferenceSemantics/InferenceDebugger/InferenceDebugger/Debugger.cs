@@ -73,12 +73,13 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             }
 
             var max_likelihoods_for_each_sample_size = from best_sample_of_fixed_size in best_samples_of_fixed_sizes
-                                                       select Tuple.Create(best_sample_of_fixed_size.Key, StudentT.PDF(0.0, 1.0, (double)(best_sample_of_fixed_size.Key - 1), best_sample_of_fixed_size.Value.Item1), best_sample_of_fixed_size.Value.Item2,
-                                                       best_sample_of_fixed_size.Value.Item3);
+                                                       select Tuple.Create(best_sample_of_fixed_size.Key,
+                                                       StudentT.PDF(0.0, 1.0, (double)(best_sample_of_fixed_size.Key - 1), best_sample_of_fixed_size.Value.Item1),
+                                                       best_sample_of_fixed_size.Value.Item2, best_sample_of_fixed_size.Value.Item3);
             return max_likelihoods_for_each_sample_size;
         };
 
-        Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double>>, HyperParameterModel, int> BestKSelectorForSampleSize = (best_samples_of_fixed_size, model) =>
+        Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double>>, HyperParameterModel, Tuple<int, List<Weighted<R>>>> BestKSelectorForSampleSize = (best_samples_of_fixed_size, model) =>
         {
             int k = 0;
             string file = "utility_example.txt";
@@ -109,7 +110,8 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
                     }
                 }
                 k = best_utilities.OrderBy(i => i.Item2).ElementAt(0).Item2;
-                return k;
+                var best_program = best_utilities.OrderBy(i => i.Item2).ElementAt(0).Item4;
+                return Tuple.Create(k, best_program);
             }
         };
 
@@ -122,9 +124,9 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             var SEM = Math.Sqrt((dynamic)sample_variance / k);
             var t_statistic = (sample_mean - population_mean) / SEM;
             return Tuple.Create(k, t_statistic, all_values, sample_variance, sample_mode);
-        };              
+        };
 
-        Func<double, double, Uncertain<Uncertain<R>>, RandomPrimitive<R>,IEnumerable<Tuple<int, double, List<Weighted<R>>, double, double>>> SameSampleSizeBestProgramSamplerForTopk = (population_mode, population_mean, p, function) =>
+        Func<double, double, Uncertain<Uncertain<R>>, RandomPrimitive<R>, IEnumerable<Tuple<int, double, List<Weighted<R>>, double, double>>> SameSampleSizeBestProgramSamplerForTopk = (population_mode, population_mean, p, function) =>
         {
             var samples = p.SampledInference(10000).Support().ToList();
             var t_variates_and_modes = from sample in samples
@@ -160,9 +162,9 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
                                                        best_sample_of_fixed_size.Value.Item3, best_sample_of_fixed_size.Value.Item4);
             return max_likelihoods_for_each_sample_size;
         };
-       
 
-        Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double, double>>, HyperParameterModel, int> BestKSelectorForTopk = (best_samples_of_fixed_size, model) =>
+
+        Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double, double>>, HyperParameterModel, Tuple<int, List<Weighted<R>>>> BestKSelectorForTopk = (best_samples_of_fixed_size, model) =>
         {
             int k = 0;
             string file = "utility_example.txt";
@@ -193,28 +195,29 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
                     }
                 }
                 k = best_utilities.OrderBy(i => i.Item2).ElementAt(0).Item2;
-                return k;
+                var best_program = best_utilities.OrderBy(i => i.Item2).ElementAt(0).Item4;
+                return Tuple.Create(k, best_program);
             }
         };
 
-        public int DebugSampleSize<R>(HyperParameterModel model, Func<int, Uncertain<R>> program, double population_mean, Uncertain<Tuple<int, double>> hyper_params)
+        public Tuple<int, List<Weighted<R>>> DebugSampleSize<R>(HyperParameterModel model, Func<int, Uncertain<R>> program, double population_mean, Uncertain<Tuple<int, double>> hyper_params)
         {
             var uncertain_program = from k1 in hyper_params
                                     let prog = program(k1.Item1)
                                     select prog;
             var all_good_programs = SameSampleSizeBestProgramSamplerForSize(population_mean, (dynamic)uncertain_program);
-            var best_hyper_parameter = BestKSelectorForSampleSize(all_good_programs, model);
+            Tuple<int, List<Weighted<R>>> best_hyper_parameter = BestKSelectorForSampleSize(all_good_programs, model);
             return best_hyper_parameter;
         }
 
-        public int DebugTopk<R>(HyperParameterModel model, Func<int, Uncertain<R>> program, double population_mode, double population_mean, Uncertain<Tuple<int, double>> hyper_params,
-            RandomPrimitive<R>function)
+        public Tuple<int, List<Weighted<R>>> DebugTopk<R>(HyperParameterModel model, Func<int, Uncertain<R>> program, double population_mode, double population_mean, Uncertain<Tuple<int, double>> hyper_params,
+            RandomPrimitive<R> function)
         {
             var uncertain_program = from k1 in hyper_params
                                     let prog = program(k1.Item1)
                                     select prog;
             var all_good_programs = SameSampleSizeBestProgramSamplerForTopk(population_mode, population_mean, (dynamic)uncertain_program, (dynamic)function);
-            var best_hyper_parameter = BestKSelectorForTopk(all_good_programs, model);
+            Tuple<int, List<Weighted<R>>> best_hyper_parameter = BestKSelectorForTopk(all_good_programs, model);
             return best_hyper_parameter;
         }
     }

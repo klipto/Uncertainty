@@ -39,7 +39,7 @@
       <HintPath>..\..\..\..\Apache-Lucene.Net-3.0.3-RC2.src\build\bin\core\Debug\NET40\Lucene.Net.dll</HintPath>
     </Reference>
     <Reference Include="MathNet.Numerics">
-      <HintPath>..\packages\MathNet.Numerics.3.12.0\lib\net40\MathNet.Numerics.dll</HintPath>
+      <HintPath>..\..\..\..\..\mathnet-numerics\obj\lib-debug\Net40\MathNet.Numerics.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -61,11 +61,9 @@
     <Compile Include="SampleDataRepository.cs" />
     <Compile Include="Search.cs" />
     <Compile Include="SearchEngineImpl.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-    <None Include="packages.config" />
+    <Folder Include="Properties\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
