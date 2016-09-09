@@ -58,10 +58,10 @@ namespace LinearRegression
                 var predictive_dist = new Microsoft.Research.Uncertain.MultivariateNormal(X * sample.Value, I_noise, I);
                 var y_likelihood = predictive_dist.GetSample();
                 var successes = TotalSuccessCounter(y_likelihood, Y);
-                success_list.Add(Tuple.Create(successes, sample.Value));
+                meta_inferred_success_list.Add(Tuple.Create(successes, sample.Value));
             }
             var meta_inferred_uncertain_success = meta_inferred_success_list.OrderByDescending(i => i.Item1);
-        }
+    }
 
         private static int TotalSuccessCounter(Matrix<double> estimates, Matrix<double> actuals)
         {
@@ -85,7 +85,6 @@ namespace LinearRegression
             var alpha = 0.0001F;
             var w = Matrix<double>.Build.Dense(X.ColumnCount, Y.ColumnCount, 0F);
             var rand = new Random(0);
-
             var count = 0;
             while (true)
             //for (int i = 0; i < X.RowCount; i++)
