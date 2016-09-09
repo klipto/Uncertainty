@@ -10,6 +10,7 @@ using Microsoft.Research.Uncertain.Inference;
 
 using MathNet.Numerics.Statistics;
 using MathNet.Numerics.Distributions;
+using MathNet.Numerics.LinearAlgebra;
 
 using System.Linq.Expressions;
 
@@ -82,6 +83,7 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
         Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double>>, HyperParameterModel, Tuple<int, List<Weighted<R>>>> BestKSelectorForSampleSize = (best_samples_of_fixed_size, model) =>
         {
             int k = 0;
+            
             string file = "utility_example.txt";
             using (StreamWriter sw = new StreamWriter(file))
             {
@@ -208,8 +210,8 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             var all_good_programs = SameSampleSizeBestProgramSamplerForSize(population_mean, (dynamic)uncertain_program);
             Tuple<int, List<Weighted<R>>> best_hyper_parameter = BestKSelectorForSampleSize(all_good_programs, model);
             return best_hyper_parameter;
-        }
-
+        }        
+ 
         public Tuple<int, List<Weighted<R>>> DebugTopk<R>(HyperParameterModel model, Func<int, Uncertain<R>> program, double population_mode, double population_mean, Uncertain<Tuple<int, double>> hyper_params,
             RandomPrimitive<R> function)
         {
@@ -219,6 +221,43 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             var all_good_programs = SameSampleSizeBestProgramSamplerForTopk(population_mode, population_mean, (dynamic)uncertain_program, (dynamic)function);
             Tuple<int, List<Weighted<R>>> best_hyper_parameter = BestKSelectorForTopk(all_good_programs, model);
             return best_hyper_parameter;
+        }
+
+        // Multivariate-t is way too complex. Hence approximating with Multivariate Gaussian.
+        public Tuple<double, double, double, List<Weighted<Matrix<double>>>, int> ComplexDebugSampleSize(HyperParameterModel model, 
+            Func<int, Uncertain<Matrix<double>>> program, Matrix<double> population_mean, Matrix<double> population_var,Uncertain<Tuple<int, double>> hyper_params)
+        {
+            var uncertain_program = from k1 in hyper_params
+                                    let prog = program(k1.Item1)
+                                    select prog;
+
+            List<Tuple<double, double, double, List<Weighted<Matrix<double>>>, int>> sample_parameters = new List<Tuple<double, double, double, List<Weighted<Matrix<double>>>, int>>();
+            var samples = uncertain_program.SampledInference(10000).Support().ToList();
+            // pick that sample for which the likelihood of N(sample_mean - population_mean, sigma_sq/n) is maximized.
+            foreach (var sample in samples) 
+            {                
+                var sample_size = sample.Value.Inference().Support().ToList().Count;
+                var actual_sample = sample.Value.Inference().Support().ToList();
+                var sample_sum = Matrix<double>.Build.Sparse(population_mean.RowCount,1,0);
+                for(int x=0;x< population_mean.RowCount;x++)
+                {
+                    for (int y = 0; y < sample_size; y++)
+                    {
+                        sample_sum[x, 0] = sample_sum[x,0] + (actual_sample.ElementAt(y).Value)[x, 0];
+                    }
+                }
+                var sample_mean = sample_sum / sample_size;
+                Matrix<double> sample_var = population_var/sample_size; // sigma_sq/n                
+                Matrix<double> mean_of_gaussian = Matrix<double>.Build.Sparse(population_mean.RowCount, 1); // 0 matrix
+                var I = Matrix<double>.Build.Sparse(1, 1, 1);
+                var n_score = new MultivariateNormal(mean_of_gaussian, sample_var, I).Density(sample_mean - population_mean);
+                var k_likelhood = model.truncatedGeometric.Score(sample_size);
+                var utility = k_likelhood * n_score;
+                var parameter = Tuple.Create(n_score, k_likelhood, utility, actual_sample, sample_size);
+                sample_parameters.Add(parameter);
+            }
+            var best_sample = sample_parameters.OrderByDescending(i=> i.Item3).ElementAt(0);
+            return best_sample;           
         }
     }
 }

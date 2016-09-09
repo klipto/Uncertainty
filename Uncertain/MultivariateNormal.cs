@@ -268,7 +268,6 @@ namespace Microsoft.Research.Uncertain
                 var tmp = other as MultivariateNormal;
                 return tmp._m == this._m && tmp._v == this._v && tmp._k == this._k;
             }
-
             return false;
         }
     }
