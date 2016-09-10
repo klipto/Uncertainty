@@ -217,7 +217,7 @@ namespace SearchEngine
             }
             return machine_result_map;
         }
-        public static HashSet<ChosenDocument> TopkDocumentSelector(Microsoft.Research.Uncertain.Exponential exp, Dictionary<Field, double> document_probabilities)
+        public static HashSet<ChosenDocument> TopkDocumentSelector(Microsoft.Research.Uncertain.Exponential exp, Dictionary<Field, double> document_probabilities, int atleast_top = 10)
         {
             HashSet<double> probabilities = new HashSet<double>();
             HashSet<ChosenDocument> uncertain_documents = new HashSet<ChosenDocument>();

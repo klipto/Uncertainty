@@ -107,7 +107,7 @@ namespace LinearRegression
         }
         static void Main(string[] args)
         {
-            var TRAINING_FILE = "ijcnn11";                        
+            var TRAINING_FILE = "ijcnn12";                        
             var data = ProblemHelper.ReadAndScaleProblem(TRAINING_FILE);
             var numexamples = data.l;
             var numfeatures = (from example in data.x

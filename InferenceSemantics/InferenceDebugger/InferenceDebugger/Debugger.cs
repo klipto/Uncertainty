@@ -223,7 +223,6 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             return best_hyper_parameter;
         }
 
-        // Multivariate-t is way too complex. Hence approximating with Multivariate Gaussian.
         public Tuple<double, double, double, List<Weighted<Matrix<double>>>, int> ComplexDebugSampleSize(HyperParameterModel model, 
             Func<int, Uncertain<Matrix<double>>> program, Matrix<double> population_mean, Matrix<double> population_var,Uncertain<Tuple<int, double>> hyper_params)
         {
