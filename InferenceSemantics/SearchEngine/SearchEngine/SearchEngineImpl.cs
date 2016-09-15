@@ -94,7 +94,7 @@ namespace SearchEngine
             return partitions;
         }
 
-        public static Tuple<List<ChosenDocument>, Dictionary<int, Dictionary<Field, double>>> finalSearch(Dictionary<int, Dictionary<Field, double>> score_summaries, Dictionary<int, Dictionary<Field, double>> score_probabilities,
+        public static Tuple<HashSet<ChosenDocument>, HashSet<ChosenDocument>, HashSet<ChosenDocument>,List<ChosenDocument>, Dictionary<int, Dictionary<Field, double>>> finalSearch(Dictionary<int, Dictionary<Field, double>> score_summaries, Dictionary<int, Dictionary<Field, double>> score_probabilities,
             Dictionary<int, HashSet<ChosenDocument>> machine_specific_results)
         {            
             var s1 = machine_specific_results[1];
@@ -117,7 +117,7 @@ namespace SearchEngine
             // Here is an example of why the debugger should be run on ERPs. It is hard to know the distribution of every function of ERPs and hence it is hard to know the mean.
             //var best_k = new UncertainTDebugger.Debugger<double>().Debug(, ___ , c_k);       
      
-            return Tuple.Create(final_output,score_probabilities);
+            return Tuple.Create(s1, s2, s3, final_output,score_probabilities);
         }
 
         public static Dictionary<int, HashSet<ChosenDocument>> distributedSearch(string query, Dictionary<int, Dictionary<Field, double>> score_summaries, Dictionary<int, Dictionary<Field, double>> score_probabilities)
@@ -201,6 +201,7 @@ namespace SearchEngine
                     if (document_probabilities.Count > 2)
                     {
                         //topk_uncertain_documents = TopkDocumentSelector(exp, document_probabilities);
+                        
                         topk_uncertain_documents = TopkDocumentSelector(exp, probabilities_documents);
                     }
                     //else if (document_probabilities.Count <= 2) // if there are very few matches, then return them all (this is a hack for now).
@@ -222,15 +223,16 @@ namespace SearchEngine
             HashSet<double> probabilities = new HashSet<double>();
             HashSet<ChosenDocument> uncertain_documents = new HashSet<ChosenDocument>();
             
-            Debugger<double> doubleDebugger = new Debugger<double>(0.01, 1, document_probabilities.Count);
+            Debugger<double> doubleDebugger = new Debugger<double>(0.001, 1, document_probabilities.Count);
             Func<int, Uncertain<double>> F = (k1) =>
                from a in exp.SampledInference(k1)
                select a;
             var hyper = from k in doubleDebugger.hyperParameterModel.truncatedGeometric
                         select Tuple.Create(k, doubleDebugger.hyperParameterModel.truncatedGeometric.Score(k));
             //var topk = doubleDebugger.DebugSampleSize(doubleDebugger.hyperParameterModel, F, 1 / (double)exp.Score(0), hyper);            
-            var topk = doubleDebugger.DebugTopk(doubleDebugger.hyperParameterModel, F, 0 ,1 / (double)exp.Score(0), hyper, exp);
-            if (topk.Item1 > 0)
+            //var topk = doubleDebugger.DebugTopkWithRange(doubleDebugger.hyperParameterModel, F, 0 ,1 / (double)exp.Score(0), hyper, exp, 1);
+            var topk = doubleDebugger.DebugTopk(doubleDebugger.hyperParameterModel, F, 0, 1 / (double)exp.Score(0), hyper, exp);            
+            if (topk.Item1 > 0) 
             {
                 for (int x = 0; x < topk.Item1; x++)
                 {
@@ -241,11 +243,12 @@ namespace SearchEngine
         }
         public static void Main(string[] args)
         {
-            StreamReader datafile = new StreamReader(@"C:\Users\t-chnand\Desktop\Uncertainty\InferenceSemantics\SearchEngine\SearchEngine\dataset\HundredThousandData.txt");
+            StreamReader datafile = new StreamReader(@"C:\Users\t-chnand\Desktop\Uncertainty\InferenceSemantics\SearchEngine\SearchEngine\dataset\Data.txt");
             DataParser.ParseDataSet(datafile);
-            List<Tuple<string, int, Dictionary<int, Dictionary<Field, double>>>> result_count = new List<Tuple<string,int,Dictionary<int,Dictionary<Field,double>>>>();
+            List<Tuple<string, int, HashSet<ChosenDocument>, HashSet<ChosenDocument>, HashSet<ChosenDocument>, Dictionary<int, Dictionary<Field, double>>>> result_count = 
+                new List<Tuple<string, int, HashSet<ChosenDocument>, HashSet<ChosenDocument>, HashSet<ChosenDocument>, Dictionary<int, Dictionary<Field, double>>>>();
             data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
-            string[] queries = {"algorithm", "artificial" , "machine"  ," machine learning", "train", "automatic"};
+            string[] queries = { "algorithm", "artificial" , "machine"  ,"inference", "statistical"};
             foreach (var query in queries)
             {
                 try
@@ -254,7 +257,7 @@ namespace SearchEngine
                     var score_probabilities = new Dictionary<int, Dictionary<Field, double>>();                    
                     var distributed_search = distributedSearch(query, score_summaries, score_probabilities);
                     var central_search = finalSearch(score_summaries, score_probabilities, distributed_search);
-                    result_count.Add(Tuple.Create(query, central_search.Item1.Count, central_search.Item2));
+                   // result_count.Add(Tuple.Create(query, central_search.Item1.Count, central_search.Item2, central_search.Item3, central_search.Item4, central_search.Item5));
                 }
                 catch (Exception e)
                 {
