@@ -25,7 +25,7 @@ namespace SearchEngine
 {
     public static class SearchEngineImpl
     {
-        private static int number_of_machines = 3;
+        private static int number_of_machines = 1;
         // This is used by the  "central server" to prune the results of the other servers and return the final top-k.
 
         private static Dictionary<int, List<SampleData>> data_partitions_for_distributed_search = new Dictionary<int, List<SampleData>>();
@@ -94,14 +94,14 @@ namespace SearchEngine
             return partitions;
         }
 
-        public static Tuple<HashSet<ChosenDocument>, HashSet<ChosenDocument>, HashSet<ChosenDocument>,List<ChosenDocument>, Dictionary<int, Dictionary<Field, double>>> finalSearch(Dictionary<int, Dictionary<Field, double>> score_summaries, Dictionary<int, Dictionary<Field, double>> score_probabilities,
+        public static Tuple<HashSet<ChosenDocument>, Dictionary<int, Dictionary<Field, double>>> finalSearch(Dictionary<int, Dictionary<Field, double>> score_summaries, Dictionary<int, Dictionary<Field, double>> score_probabilities,
             Dictionary<int, HashSet<ChosenDocument>> machine_specific_results)
         {            
             var s1 = machine_specific_results[1];
-            var s2 = machine_specific_results[2];
-            var s3 = machine_specific_results[3];
+            //var s2 = machine_specific_results[2];
+            //var s3 = machine_specific_results[3];
 
-            var final_output = s1.Concat(s2).Concat(s3).ToList();
+            var final_output = s1;//.Concat(s2).Concat(s3).ToList();
             List<ChosenDocument> all_results = new List<ChosenDocument>();
             foreach (var s in score_probabilities)
             {
@@ -117,7 +117,29 @@ namespace SearchEngine
             // Here is an example of why the debugger should be run on ERPs. It is hard to know the distribution of every function of ERPs and hence it is hard to know the mean.
             //var best_k = new UncertainTDebugger.Debugger<double>().Debug(, ___ , c_k);       
      
-            return Tuple.Create(s1, s2, s3, final_output,score_probabilities);
+            //return Tuple.Create(s1, s2, s3, final_output,score_probabilities);
+            string s1_file = "s1.txt";
+            using (StreamWriter sw = new StreamWriter(s1_file)) 
+            {
+                
+                foreach (var s in s1)
+                {
+                    sw.WriteLine(s.picking_probability);
+                }
+            }
+
+            string s1_allfile = "s1all.txt";
+            using (StreamWriter sw = new StreamWriter(s1_allfile))
+            {
+                foreach (var s in score_probabilities)
+                {
+                    foreach (var t in s.Value)
+                    {
+                        sw.WriteLine(t.Value);
+                    }
+                }
+            }
+            return Tuple.Create(s1, score_probabilities);
         }
 
         public static Dictionary<int, HashSet<ChosenDocument>> distributedSearch(string query, Dictionary<int, Dictionary<Field, double>> score_summaries, Dictionary<int, Dictionary<Field, double>> score_probabilities)
@@ -238,6 +260,16 @@ namespace SearchEngine
                 {
                     uncertain_documents.Add(new ChosenDocument { field = document_probabilities.ElementAt(x).Key, picking_probability = document_probabilities.ElementAt(x).Value });
                 }
+                foreach (var val in topk.Item2)
+                {
+                    foreach (var f in document_probabilities)
+                    {
+                        if (Math.Round(val.Value, 3) == Math.Round(f.Value, 3))
+                        {
+                            uncertain_documents.Add(new ChosenDocument { field = f.Key, picking_probability = f.Value });
+                        }
+                    }
+                }
             }
             return uncertain_documents;
         }
@@ -248,7 +280,10 @@ namespace SearchEngine
             List<Tuple<string, int, HashSet<ChosenDocument>, HashSet<ChosenDocument>, HashSet<ChosenDocument>, Dictionary<int, Dictionary<Field, double>>>> result_count = 
                 new List<Tuple<string, int, HashSet<ChosenDocument>, HashSet<ChosenDocument>, HashSet<ChosenDocument>, Dictionary<int, Dictionary<Field, double>>>>();
             data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
-            string[] queries = { "algorithm", "artificial" , "machine"  ,"inference", "statistical"};
+            string[] queries = {// "algorithm"
+                                //"artificial"};// ,
+                                //"machine" };// ,
+                                "inference"};//, "statistical"};
             foreach (var query in queries)
             {
                 try
@@ -256,6 +291,7 @@ namespace SearchEngine
                     var score_summaries = new Dictionary<int, Dictionary<Field, double>>();
                     var score_probabilities = new Dictionary<int, Dictionary<Field, double>>();                    
                     var distributed_search = distributedSearch(query, score_summaries, score_probabilities);
+                    
                     var central_search = finalSearch(score_summaries, score_probabilities, distributed_search);
                    // result_count.Add(Tuple.Create(query, central_search.Item1.Count, central_search.Item2, central_search.Item3, central_search.Item4, central_search.Item5));
                 }

@@ -165,61 +165,6 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             return max_likelihoods_for_each_sample_size;
         };
 
-        Func<double, double, Uncertain<Uncertain<R>>, RandomPrimitive<R>, int, IEnumerable<Tuple<int, double, List<Weighted<R>>, double>>> SameSampleSizeBestProgramSamplerForTopkWithRange = 
-            (population_mode, population_mean, p, function, top_how_many) =>
-        {
-            var samples = p.SampledInference(100000).Support().ToList();
-            var t_variates_and_topk = from sample in samples
-                                       where sample.Value.Inference().Support().ToList().Count > 0
-                                       let t = TVariateGenerator(sample.Value.Inference().Support().ToList().Count, population_mean, sample.Value)
-                                       where isTopkIncluded(sample.Value.Inference().Support().ToList().Count, population_mode, sample.Value, function, top_how_many) == true
-                                       select t;            
-            List<Tuple<int, double, List<Weighted<R>>, double>> t_scores = new List<Tuple<int, double, List<Weighted<R>>, double>>();
-            foreach (var t_variate in t_variates_and_topk)
-            {
-                if (t_variate.Item1 - 1 <= 0)
-                {
-                    continue;
-                }
-                else
-                {
-                    var t_score = Tuple.Create(t_variate.Item1, StudentT.PDF(0, 1, t_variate.Item1 - 1, t_variate.Item2), t_variate.Item3, t_variate.Item4);
-                    t_scores.Add(t_score);
-                }
-            }
-            var sorted_tscores = t_scores.OrderByDescending(i => i.Item2 / ((i.Item4))).ToList();
-            Dictionary<int, Tuple<double, List<Weighted<R>>, double>> best_samples_of_fixed_sizes = new Dictionary<int, Tuple<double, List<Weighted<R>>, double>>();
-            for (int x = 0; x < sorted_tscores.Count; x++)
-            {
-                if (!best_samples_of_fixed_sizes.Keys.Contains(sorted_tscores[x].Item1))
-                {
-                    best_samples_of_fixed_sizes.Add(sorted_tscores[x].Item1, Tuple.Create(sorted_tscores[x].Item2, sorted_tscores[x].Item3, sorted_tscores[x].Item4));
-                }
-                else continue;
-            }
-
-            var max_likelihoods_for_each_sample_size = from best_sample_of_fixed_size in best_samples_of_fixed_sizes
-                                                       select Tuple.Create(best_sample_of_fixed_size.Key, StudentT.PDF(0.0, 1.0, (double)(best_sample_of_fixed_size.Key - 1), best_sample_of_fixed_size.Value.Item1), best_sample_of_fixed_size.Value.Item2,
-                                                       best_sample_of_fixed_size.Value.Item3);
-            return max_likelihoods_for_each_sample_size;
-        };
-
-        static Func<int, double, Uncertain<R>, RandomPrimitive<R>, int, bool> isTopkIncluded = (k, population_mode, sample, function, top_count) =>
-        {
-            List<double> list_of_sample_values = new List<double>();
-            foreach (var sample_value in sample.Inference().Support().ToList())
-            {
-                list_of_sample_values.Add((dynamic)sample_value.Value);
-            }
-            if (list_of_sample_values.Contains(population_mode))
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        };
 
         Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double, double>>, HyperParameterModel, Tuple<int, List<Weighted<R>>>> BestKSelectorForTopk = (best_samples_of_fixed_size, model) =>
         {
@@ -257,6 +202,8 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             }
         };
 
+
+               
         public Tuple<int, List<Weighted<R>>> DebugSampleSize<R>(HyperParameterModel model, Func<int, Uncertain<R>> program, double population_mean, Uncertain<Tuple<int, double>> hyper_params)
         {
             var uncertain_program = from k1 in hyper_params
@@ -277,18 +224,6 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             Tuple<int, List<Weighted<R>>> best_hyper_parameter = BestKSelectorForTopk(all_good_programs, model);
             return best_hyper_parameter;
         }
-
-        public Tuple<int, List<Weighted<R>>> DebugTopkWithRange<R>(HyperParameterModel model, Func<int, Uncertain<R>> program, double population_mode, double population_mean, Uncertain<Tuple<int, double>> hyper_params,
-            RandomPrimitive<R> function, int top_how_many)
-        {
-            var uncertain_program = from k1 in hyper_params
-                                    let prog = program(k1.Item1)
-                                    select prog;
-            var all_good_programs = SameSampleSizeBestProgramSamplerForTopkWithRange(population_mode, population_mean, (dynamic)uncertain_program, (dynamic)function, top_how_many);
-            Tuple<int, List<Weighted<R>>> best_hyper_parameter = BestKSelectorForTopk(all_good_programs, model);
-            return best_hyper_parameter;
-        }
-
 
         public Tuple<double, double, double, List<Weighted<Matrix<double>>>, int> ComplexDebugSampleSize(HyperParameterModel model, 
             Func<int, Uncertain<Matrix<double>>> program, Matrix<double> population_mean, Matrix<double> population_var,Uncertain<Tuple<int, double>> hyper_params)
