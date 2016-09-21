@@ -33,9 +33,9 @@ namespace Microsoft.Research.Uncertain
 {
     public class Select<TSource, TResult> : Uncertain<TResult>
     {
-        internal readonly Uncertain<TSource> source;
+        public readonly Uncertain<TSource> source;
 
-        internal Func<TSource, Weighted<TResult>> Projection { get; private set; }
+        public  Func<TSource, Weighted<TResult>> Projection { get; private set; }
 
         internal Select(Uncertain<TSource> source, Func<TSource, Weighted<TResult>> projection)
         {
@@ -43,7 +43,7 @@ namespace Microsoft.Research.Uncertain
             this.Projection = projection;
         }
 
-        protected override IEnumerable<Weighted<TResult>> GetSupport()
+        public override IEnumerable<Weighted<TResult>> GetSupport()
         {
             foreach (Weighted<TSource> a in this.source.Support())
             {
@@ -55,7 +55,7 @@ namespace Microsoft.Research.Uncertain
                 };
             }
         }
-        internal override void Accept(IUncertainVisitor visitor)
+        public override void Accept(IUncertainVisitor visitor)
         {
             visitor.Visit(this);
         }

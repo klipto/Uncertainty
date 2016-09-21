@@ -28,8 +28,10 @@
 */
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace Microsoft.Research.Uncertain
 {
@@ -64,12 +66,28 @@ namespace Microsoft.Research.Uncertain
             double Range = b - a;
             return NextRandom() * Range + a;
         }
+        public static T ExpectedValue<T>(this Uncertain<T> source, int SampleSize = EXPECTED_VALUE_SAMPLE_SIZE)
+        {
+            var sampler = Sampler.Create(source);
+            var data = sampler.Take(SampleSize).ToList();
+
+            // http://en.wikipedia.org/wiki/Weighted_arithmetic_mean
+            var N = (double)data.Count();
+            var WeightSum = (from k in data select k.Probability).Sum();
+            var SumOfSquares = data.Select(x => Math.Pow(x.Probability, 2)).Sum();
+
+            // weighted mean
+            var Xbar = data.Select(x => (dynamic)x.Value * x.Probability).Aggregate((a, b) => a + b) / WeightSum;
+            return (T)Xbar;
+        }
+
 
         public static MeanAndConfidenceInterval ExpectedValueWithConfidence<T>(this Uncertain<T> source, int SampleSize = EXPECTED_VALUE_SAMPLE_SIZE)
         //  where T : IConvertible
         {
             const double CI_AT_95 = 1.96;
             var sampler = Sampler.Create(source);
+
             var data = (from k in sampler.Take(SampleSize)
                         select new Weighted<double>()
                         {
@@ -125,9 +143,16 @@ namespace Microsoft.Research.Uncertain
                 int InitSampleSize = INITIAL_SAMPLE_SIZE,
                 int SampleSizeStep = SAMPLE_SIZE_STEP)
         {
-            // Initial sample size
             int num_samples;
+            return source.Pr(out num_samples, Prob, Alpha, Epsilon, MaxSampleSize, InitSampleSize, SampleSizeStep);
+        }
 
+        public static bool Pr(this Uncertain<bool> source, out int num_samples, double Prob = 0.5,
+                double Alpha = 0.05, double Epsilon = 0.03,
+                int MaxSampleSize = MAX_SAMPLE_SIZE,
+                int InitSampleSize = INITIAL_SAMPLE_SIZE,
+                int SampleSizeStep = SAMPLE_SIZE_STEP)
+        {
             // The hypotheses being compared
             double H_0 = Prob - Epsilon;  // H_0 : p <= prob - epsilon
             double H_1 = Prob + Epsilon;  // H_1 : p >= prob + epsilon
@@ -217,21 +242,21 @@ namespace Microsoft.Research.Uncertain
 
         public static Uncertain<TResult> SelectMany<TSource, TCollection, TResult>(
             this Uncertain<TSource> first,
-            Func<TSource, Uncertain<TCollection>> collectionSelector,
-            Func<TSource, TCollection, Weighted<TResult>> resultSelector)
+            Expression<Func<TSource, Uncertain<TCollection>>> collectionSelector,
+            Expression<Func<TSource, TCollection, Weighted<TResult>>> resultSelector)
         {
             return new SelectMany<TSource, TCollection, TResult>(first, collectionSelector, resultSelector);
         }
 
         public static Uncertain<TResult> SelectMany<TSource, TCollection, TResult>(
             this Uncertain<TSource> first,
-            Func<TSource, Uncertain<TCollection>> collectionSelector,
-            Func<TSource, TCollection, TResult> resultSelector)
+            Expression<Func<TSource, Uncertain<TCollection>>> collectionSelector,
+            Expression<Func<TSource, TCollection, TResult>> resultSelector)
         {
             return new SelectMany<TSource, TCollection, TResult>(
                 first,
                 collectionSelector,
-                (a, b) => new Weighted<TResult>() { Value = resultSelector(a, b), Probability = 1.0 }
+                (a, b) => new Weighted<TResult>() { Value = (resultSelector.Compile())(a, b), Probability = 1.0 }
             );
         }
     }
@@ -241,8 +266,9 @@ namespace Microsoft.Research.Uncertain.Inference
 {
     public static class Extensions
     {
+        public static Dictionary<object, Tuple<string, int>> inferences = new Dictionary<object, Tuple<string,int>>();
 
-        internal static Uncertain<T> RunInference<T>(IList<Weighted<T>> data, IEqualityComparer<T> comparer = null)
+        public static Uncertain<T> RunInference<T>(IList<Weighted<T>> data, IEqualityComparer<T> comparer = null)
         {
             if (comparer == null)
                 comparer = EqualityComparer<T>.Default;
@@ -264,10 +290,18 @@ namespace Microsoft.Research.Uncertain.Inference
                                Value = item.Item1,
                                Probability = item.Item2 / numpaths
                            };
-            return new FiniteEnumeration<T>(weighted.ToList());
+            return new Multinomial<T>(weighted.ToList());
         }
+
+        //public static Uncertain<T> Inference2<T>(this Uncertain<T> source, IEqualityComparer<T> comparer = null)
+        //{
+        //  return new Inference<T>(source, comparer);
+        //return RunInference(source.Support().ToList(), comparer);
+        //}
+
         public static Uncertain<T> Inference<T>(this Uncertain<T> source, IEqualityComparer<T> comparer = null)
         {
+            inferences.Add(new Inference<T>(source, comparer), new Tuple<string, int>(source.ToString(), 0));
             return RunInference(source.Support().ToList(), comparer);
         }
 
@@ -276,7 +310,7 @@ namespace Microsoft.Research.Uncertain.Inference
             var sampler = Sampler.Create(source);
             // cache data
             var data = sampler.Take(samplesize).ToList();
-
+            inferences.Add(new Inference<T>(source, comparer), new Tuple<string, int>(source.ToString(),samplesize));
             return RunInference(data, comparer);
         }
 
@@ -285,6 +319,84 @@ namespace Microsoft.Research.Uncertain.Inference
             return new Where<T>(source, predicate);
         }
 
+        public class FunctionalList<T> : IEnumerable<T>
+        {
+            // Creates a new list that is empty
+            public FunctionalList()
+            {
+                IsEmpty = true;
+            }
+            // Creates a new list containe value and a reference to tail
+            public FunctionalList(T head, FunctionalList<T> tail)
+            {
+                IsEmpty = false;
+                Head = head;
+                Tail = tail;
+            }
+            // Is the list empty?
+            public bool IsEmpty { get; private set; }
+            // Properties valid for a non-empty list
+            public T Head { get; private set; }
+            public FunctionalList<T> Tail { get; private set; }
+
+            public IEnumerator<T> GetEnumerator()
+            {
+                return FunctionalList.Helper<T>(this).GetEnumerator();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return FunctionalList.Helper<T>(this).GetEnumerator();
+            }
+        }
+
+        // Static class that provides nicer syntax for creating lists
+        public static class FunctionalList
+        {
+            public static FunctionalList<T> Empty<T>()
+            {
+                return new FunctionalList<T>();
+            }
+            public static FunctionalList<T> Cons<T>
+                    (T head, FunctionalList<T> tail)
+            {
+                return new FunctionalList<T>(head, tail);
+            }
+
+            internal static IEnumerable<T> Helper<T>(FunctionalList<T> lst)
+            {
+                if (lst.IsEmpty) yield break;
+                yield return lst.Head;
+                foreach (var item in Helper(lst.Tail))
+                    yield return item;
+            }
+
+            public static T[] ToArray<T>(FunctionalList<T> lst)
+            {
+                var array = Helper<T>(lst).ToArray();
+                return array;
+            }
+        }
+
+
+        public static Uncertain<R[]> USeq<T, R>(this IEnumerable<Uncertain<T>> source, Func<T[], R[]> selector)
+        {
+            Uncertain<R[]> output = source.Aggregate<Uncertain<T>, Uncertain<FunctionalList<T>>, Uncertain<R[]>>(
+                FunctionalList.Empty<T>(),
+                (i, j) =>
+                {
+                    return from lst in i
+                           from sample in j
+                           select FunctionalList.Cons(sample, lst);
+                },
+                uncertainlst =>
+                {
+                    return from sample in uncertainlst
+                           let vec = sample.Reverse().ToArray()
+                           select selector(vec);
+                });
+            return output;
+        }
         //TODO: implement inference via group by?
         //public static IEnumerable<Tuple<K, Uncertain<T>>> GroupBy<T, K>(this Uncertain<T> source, Func<T, K> keySelector) where K : IComparable
         //public static Uncertain<Tuple<K, T>> GroupBy<T, K>(this Uncertain<T> source, Func<T, K> keySelector) where K : IComparable

@@ -35,5 +35,7 @@ namespace Microsoft.Research.Uncertain
         void Visit<T>(Where<T> where);
         void Visit<TSource, TResult>(Select<TSource, TResult> select);
         void Visit<TSource, TCollection, TResult>(SelectMany<TSource, TCollection, TResult> selectmany);
+
+        void Visit<T>(Inference<T> inference);
     }
 }

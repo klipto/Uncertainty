@@ -27,16 +27,83 @@
 * ----------------------------------------------- END OF LICENSE ------------------------------------------
 */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.Research.Uncertain
 {
-    public class FiniteEnumeration<T> : Multinomial<T>
+    public class FiniteEnumeration<T> : RandomPrimitive<T>
     {
-        public FiniteEnumeration(IList<T> space) :
-            base(space.Zip(Enumerable.Repeat(1.0 / space.Count(), space.Count()), (a, b) => new Weighted<T>() { Value = a, Probability = b }).ToList()) { }
+        private readonly DiscreteSampler<T> table;
+        private readonly IDictionary<T, double> sampleMap;
 
-        public FiniteEnumeration(IList<Weighted<T>> space) : base(space) { }
+        public FiniteEnumeration(IList<T> space) :
+            this(space.Zip(Enumerable.Repeat(1.0 / space.Count(), space.Count()), (a, b) => new Weighted<T>() { Value = a, Probability = b }).ToList()) { }
+
+        public FiniteEnumeration(IList<Weighted<T>> space)
+        {
+            this.sampleMap = new Dictionary<T, double>();
+            var samples = new T[space.Count];
+            var probs = new double[space.Count];
+            for(int i = 0; i < space.Count; i++)
+            {
+                samples[i] = space[i].Value;
+                probs[i] = space[i].Probability;
+                this.sampleMap[samples[i]] = probs[i];
+            }
+            this.table = new DiscreteSampler<T>(samples, probs);
+        }
+
+        public override double Score(T t)
+        {
+            return this.sampleMap[t];
+        }
+
+        public override T GetSample()
+        {
+            return this.table.Sample();
+        }
+
+        public override int GetStructuralHash()
+        {
+            int hash = 0;
+            foreach (var item in this.sampleMap)
+            {
+                hash ^= item.Value.GetHashCode() * item.Key.GetHashCode();
+            }
+            return hash;
+        }
+
+        public override IEnumerable<Weighted<T>> GetSupport()
+        {
+            foreach(var item in sampleMap)
+            {
+                yield return new Weighted<T> { Value = item.Key, Probability = item.Value };
+            }
+        }
+
+        public override bool StructuralEquals(RandomPrimitive other)
+        { 
+            if (other is FiniteEnumeration<T>)
+            {
+                var tmp = other as FiniteEnumeration<T>;
+                if (tmp.sampleMap.Count() != this.sampleMap.Count())
+                {
+                    return false;
+                }
+
+                foreach (var pairs in this.sampleMap.Zip(tmp.sampleMap, Tuple.Create))
+                {
+                    if (pairs.Item1.Key.Equals(pairs.Item2.Key) == false ||
+                        pairs.Item1.Value != pairs.Item2.Value) // toddm: comparing on double! :(
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
     }
 }

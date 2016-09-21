@@ -58,7 +58,7 @@ namespace Microsoft.Research.Uncertain
             this.options = options;
         }
 
-        protected override IEnumerable<Weighted<T>> GetSupport()
+        public override IEnumerable<Weighted<T>> GetSupport()
         {
             return this.options;
         }
@@ -71,7 +71,7 @@ namespace Microsoft.Research.Uncertain
             throw new Exception("T not in options");
         }
 
-        protected override T GetSample()
+        public override T GetSample()
         {
             var p = 0.0;
             var value = Extensions.NextRandom();
@@ -87,7 +87,7 @@ namespace Microsoft.Research.Uncertain
             throw new Exception("Expected probabilties to sum to 1");
         }
 
-        protected override bool StructuralEquals(RandomPrimitive other)
+        public override bool StructuralEquals(RandomPrimitive other)
         {
             if (other is Multinomial<T>)
             {
@@ -103,7 +103,7 @@ namespace Microsoft.Research.Uncertain
             return true;
         }
 
-        protected override int GetStructuralHash()
+        public override int GetStructuralHash()
         {
             int hash = 0;
             foreach (var item in this.options)

@@ -39,7 +39,7 @@ namespace Microsoft.Research.Uncertain
             this.constant = t;
         }
 
-        protected override IEnumerable<Weighted<T>> GetSupport()
+        public override IEnumerable<Weighted<T>> GetSupport()
         {
             yield return new Weighted<T>() { Value = this.constant, Probability = 1.0 };
         }
@@ -49,18 +49,18 @@ namespace Microsoft.Research.Uncertain
             return 1.0;
         }
 
-        protected override T GetSample()
+        public override T GetSample()
         {
             return this.constant;
         }
-        protected override bool StructuralEquals(RandomPrimitive other)
+        public override bool StructuralEquals(RandomPrimitive other)
         {
             if (other is Constant<T>)
                 return this.constant.Equals(((Constant<T>)other).constant);
             return false;
         }
 
-        protected override int GetStructuralHash()
+        public override int GetStructuralHash()
         {
             return this.constant.GetHashCode();
         }

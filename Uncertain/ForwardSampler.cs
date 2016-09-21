@@ -33,14 +33,14 @@ using System.Collections.Generic;
 
 namespace Microsoft.Research.Uncertain
 {
-    internal class ForwardSampler<T> : IUncertainVisitor, ISampler<T>
+    public class ForwardSampler<T> : IUncertainVisitor, ISampler<T>
     {
         internal object sample;
         protected readonly Uncertain<T> source;
         protected int generation;
         private IDictionary<object, Tuple<int, object>> cache;
 
-        internal ForwardSampler(Uncertain<T> source)
+        public ForwardSampler(Uncertain<T> source)
         {
             this.source = source;
             this.generation = 1;
@@ -86,7 +86,7 @@ namespace Microsoft.Research.Uncertain
         }
 
         public void Visit<TSource, TResult>(Select<TSource, TResult> select)
-        {
+        {            
             select.source.Accept(this);
             var a = (Weighted<TSource>)this.sample;
             var b = select.Projection(a.Value);
@@ -97,14 +97,17 @@ namespace Microsoft.Research.Uncertain
         {
             selectmany.source.Accept(this);
             var a = (Weighted<TSource>)this.sample;
-
-            var b = selectmany.CollectionSelector(a.Value);
+            var b = (selectmany.CollectionSelector.Compile())(a.Value);
             b.Accept(this);
             var c = (Weighted<TCollection>)this.sample;
-
-            var result = selectmany.ResultSelector(a.Value, c.Value);
+            var result = (selectmany.ResultSelector.Compile())(a.Value, c.Value);
             result.Probability *= (a.Probability * c.Probability);
             this.sample = result;
+        }
+
+        public void Visit<T>(Inference<T> inference)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -29,39 +29,43 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace Microsoft.Research.Uncertain
 {
     public class SelectMany<TSource, TCollection, TResult> : Uncertain<TResult>
     {
-        internal readonly Uncertain<TSource> source;
-        internal Func<TSource, Uncertain<TCollection>> CollectionSelector { get; private set; }
+        public Uncertain<TSource> source;
+        public Expression<Func<TSource, Uncertain<TCollection>>> CollectionSelector { get; set; }
 
-        internal Func<TSource, TCollection, Weighted<TResult>> ResultSelector { get; private set; }
-        internal SelectMany(
+        public Expression<Func<TSource, TCollection, Weighted<TResult>>> ResultSelector { get;  set; }
+        public  SelectMany(
             Uncertain<TSource> source,
-            Func<TSource, Uncertain<TCollection>> collectionSelector,
-            Func<TSource, TCollection, Weighted<TResult>> resultSelector)
+            Expression<Func<TSource, Uncertain<TCollection>>> collectionSelector,
+            Expression<Func<TSource, TCollection, Weighted<TResult>>> resultSelector)
         {
             this.source = source;
             this.CollectionSelector = collectionSelector;
             this.ResultSelector = resultSelector;
         }
 
-        protected override IEnumerable<Weighted<TResult>> GetSupport()
+        public override IEnumerable<Weighted<TResult>> GetSupport()
         {
             foreach (Weighted<TSource> a in this.source.Support())
             {
-                foreach (Weighted<TCollection> b in this.CollectionSelector(a.Value).Support())
+                Func<TSource, Uncertain<TCollection>> collection_selector = this.CollectionSelector.Compile();
+                
+                foreach (Weighted<TCollection> b in collection_selector(a.Value).Support())
                 {
-                    Weighted<TResult> result = this.ResultSelector(a.Value, b.Value);
+                    Func<TSource, TCollection, Weighted<TResult>> result_selector = this.ResultSelector.Compile();
+                    Weighted<TResult> result = result_selector(a.Value, b.Value);
                     result.Probability *= (a.Probability * b.Probability);
                     yield return result;
                 }
             }
         }
 
-        internal override void Accept(IUncertainVisitor visitor)
+        public override void Accept(IUncertainVisitor visitor)
         {
             visitor.Visit(this);
         }

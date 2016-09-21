@@ -43,7 +43,7 @@ namespace Microsoft.Research.Uncertain
             this.stdev = stdev;
         }
 
-        protected double NextGaussian()
+        public double NextGaussian()
         {
             double sample;
             if (nextGaussianSample.HasValue)
@@ -63,7 +63,7 @@ namespace Microsoft.Research.Uncertain
             return sample;
         }
 
-        protected override IEnumerable<Weighted<double>> GetSupport()
+        public override IEnumerable<Weighted<double>> GetSupport()
         {
             throw new Exception("Infinite Support!");
         }
@@ -75,12 +75,12 @@ namespace Microsoft.Research.Uncertain
             return a * b;
         }
 
-        protected override double GetSample()
+        public override double GetSample()
         {
             return this.NextGaussian() * this.stdev + this.mu;
         }
 
-        protected override bool StructuralEquals(RandomPrimitive other)
+        public override bool StructuralEquals(RandomPrimitive other)
         {
             if (other is Gaussian)
             {
@@ -91,7 +91,7 @@ namespace Microsoft.Research.Uncertain
             return false;
         }
 
-        protected override int GetStructuralHash()
+        public override int GetStructuralHash()
         {
             return this.mu.GetHashCode() ^ this.stdev.GetHashCode();
         }

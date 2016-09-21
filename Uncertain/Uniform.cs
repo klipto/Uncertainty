@@ -44,7 +44,6 @@ namespace Microsoft.Research.Uncertain
                 throw new Exception("Min >= Max");
         }
 
-
         public override double Score(T inp)
         {
             dynamic t = inp;
@@ -53,20 +52,20 @@ namespace Microsoft.Research.Uncertain
             return 0.0;
         }
 
-        protected override IEnumerable<Weighted<T>> GetSupport()
+        public override IEnumerable<Weighted<T>> GetSupport()
         {
             foreach (var i in Enumerable.Range(min, max - min))
                 yield return new Weighted<T>(i);
             //throw new Exception("Infnite support");
         }
 
-        protected override T GetSample()
+        public override T GetSample()
         {
             var Range = this.max - this.min;
             dynamic sample = Extensions.NextRandom();
             return (sample * Range) + this.min;
         }
-        protected override bool StructuralEquals(RandomPrimitive other)
+        public override bool StructuralEquals(RandomPrimitive other)
         {
             if (other is Uniform<T>)
             {
@@ -76,7 +75,7 @@ namespace Microsoft.Research.Uncertain
             return false;
         }
 
-        protected override int GetStructuralHash()
+        public override int GetStructuralHash()
         {
             return this.min.GetHashCode() ^ this.max.GetHashCode();
         }

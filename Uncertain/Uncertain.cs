@@ -43,15 +43,15 @@ namespace Microsoft.Research.Uncertain
 
     public abstract class Uncertain<T>
     {
-        protected Uncertain() {}
+        public Uncertain() {}
 
-        protected abstract IEnumerable<Weighted<T>> GetSupport();
+        public abstract IEnumerable<Weighted<T>> GetSupport();
         public IEnumerable<Weighted<T>> Support()
         {
             return this.GetSupport();
         }
 
-        internal abstract void Accept(IUncertainVisitor visitor);
+        public abstract void Accept(IUncertainVisitor visitor);
 
         private static bool? CheckForNull(Uncertain<T> lhs, Uncertain<T> rhs)
         {
@@ -148,7 +148,7 @@ namespace Microsoft.Research.Uncertain
         private Null()
         {
         }
-        protected override T GetSample()
+        public override T GetSample()
         {
             throw new NotImplementedException();
         }
@@ -158,17 +158,17 @@ namespace Microsoft.Research.Uncertain
             throw new NotImplementedException();
         }
 
-        protected override int GetStructuralHash()
+        public override int GetStructuralHash()
         {
             throw new NotImplementedException();
         }
 
-        protected override IEnumerable<Weighted<T>> GetSupport()
+        public override IEnumerable<Weighted<T>> GetSupport()
         {
             throw new NotImplementedException();
         }
 
-        protected override bool StructuralEquals(RandomPrimitive other)
+        public override bool StructuralEquals(RandomPrimitive other)
         {
             throw new NotImplementedException();
         }

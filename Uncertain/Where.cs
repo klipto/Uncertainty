@@ -33,7 +33,7 @@ namespace Microsoft.Research.Uncertain
 {
     public class Where<T> : Uncertain<T>
     {
-        internal readonly Uncertain<T> source;
+        public readonly Uncertain<T> source;
         internal Predicate<T> Predicate { get; private set; }
 
         internal Where(Uncertain<T> source, Predicate<T> predicate) 
@@ -42,14 +42,14 @@ namespace Microsoft.Research.Uncertain
             this.Predicate = predicate;
         }
 
-        protected override IEnumerable<Weighted<T>> GetSupport()
+        public override IEnumerable<Weighted<T>> GetSupport()
         {
             foreach (var item in this.source.Support())
                 if (this.Predicate(item.Value))
                     yield return item;
         }
 
-        internal override void Accept(IUncertainVisitor visitor)
+        public override void Accept(IUncertainVisitor visitor)
         {
             visitor.Visit(this);
         }
