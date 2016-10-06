@@ -1,4 +1,4 @@
-﻿﻿using libsvm;
+﻿using libsvm;
 using MathNet.Numerics.LinearAlgebra;
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ namespace LinearRegression
 {
     class Program
     {
-        private static void UncetrainSGD(Matrix<double> X, Matrix<double> Y)
+        private static void UncertainSGD(Matrix<double> X, Matrix<double> Y)
         {
             /*Contract.Requires(X.RowCount == Y.RowCount);
             var alpha = 0.0001F;
@@ -157,7 +157,27 @@ namespace LinearRegression
         }
         static void Main(string[] args)
         {
-            var TRAINING_FILE = "ijcnn11";                        
+			DateTime start1 = DateTime.Now;
+			var program1 = from a in new Flip (0.9)
+						   from b in new Flip (0.9)
+						   from c in new Flip (0.9)
+					select Convert.ToInt32 (a) + Convert.ToInt32 (b) + Convert.ToInt32 (c);
+			var d1 = program1.SampledInference (1000).Support ().ToList ();
+
+			DateTime stop1 = DateTime.Now;
+			var difference1 = stop1 - start1;
+
+			DateTime start2 = DateTime.Now;
+			var program2 = from a in new Flip(0.9).SampledInference(1000, null)
+						   from b in new Flip(0.9).SampledInference(1000, null)
+						   from c in new Flip(0.9).SampledInference(1000, null)
+					select Convert.ToInt32 (a) + Convert.ToInt32 (b) + Convert.ToInt32 (c);
+			var d2 = program2.Inference ().Support ().ToList ();
+			DateTime stop2 = DateTime.Now;
+
+			var difference2 = stop2 - start2;
+
+            /*var TRAINING_FILE = "ijcnn11";                        
             var data = ProblemHelper.ReadAndScaleProblem(TRAINING_FILE);
             var numexamples = data.l;
             var numfeatures = (from example in data.x
@@ -177,7 +197,7 @@ namespace LinearRegression
             }
             BayesianTrain(X, Y);
             var w = Train(X, Y);
-
+*/
         }
     }
 }
