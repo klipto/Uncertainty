@@ -46,12 +46,27 @@ namespace UncertainTests
             return diff > 0.0 - eps && diff < 0.0 + eps;
         }
 
+        struct GeoLocation { }
+
         // Test the base Uncertain<T> class rather than subclasses
         [TestMethod]
-        public void Base_Sample()
+        public void Base_Sample() {
+
+            Uncertain<GeoLocation> roads = null;
+            Uncertain<GeoLocation> gps = null;
+            Func<GeoLocation, GeoLocation, double> Likelihood = (_) => 1.0;
+            var p =
+                from pos in gps
+                from road in roads
+                let prob = Likelihood(pos, road)
+                select new Weighted<GeoLocation>(pos, prob);
+
+
+        public void Base_Sample1()
         {
+
             // arrange
-            Uncertain<double> X = 5.0;
+            Uncertain < double > X = 5.0;
             // act
             var sampler = Sampler.Create(X);
             var S = sampler.First();
