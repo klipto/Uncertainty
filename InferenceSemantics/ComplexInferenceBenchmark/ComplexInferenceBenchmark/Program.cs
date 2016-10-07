@@ -13,6 +13,7 @@ namespace ComplexInferenceBenchmark
 {
 	class MainClass
 	{
+		// NEVER CALL THIS DEVIL, YOUR COMPUTER WILL DIE.
 		public static double Inference1(Uncertain<double>program1, Uncertain<double> program2, Uncertain<double> program3) {
             var g1 = program1.SampledInference(1000).Support().ToList();
             var g2 = program2.SampledInference(1000).Support().ToList();
@@ -89,8 +90,7 @@ namespace ComplexInferenceBenchmark
 				enumerate = final.SampledInference (1000).Support ().ToList();
 			}
 
-			var mean = enumerate.Select(i=>i.Value).Sum () / enumerate.Count;
-						
+			var mean = enumerate.Select(i=>i.Value).Sum () / enumerate.Count;						
 			return mean;
 		}
 
