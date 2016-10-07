@@ -14,9 +14,9 @@ namespace ComplexInferenceBenchmark
 	class MainClass
 	{
 		public static double Inference1(Uncertain<double>program1, Uncertain<double> program2, Uncertain<double> program3) {
-            var g1 = program1.SampledInference(100).Support().ToList();
-            var g2 = program2.SampledInference(100).Support().ToList();
-            var exp_enum = program3.SampledInference(100).Support().ToList();
+            var g1 = program1.SampledInference(1000).Support().ToList();
+            var g2 = program2.SampledInference(1000).Support().ToList();
+            var exp_enum = program3.SampledInference(1000).Support().ToList();
             
         
 			List<Tuple<double, double>> sample_values = new List<Tuple<double,double>> ();			
@@ -50,38 +50,60 @@ namespace ComplexInferenceBenchmark
 				sum = sum + v.Item1;
 
 			}
-			double mean1 = sum / sample_values1.Count;
+			double mean1 = sum / sample_values2.Count;
 			return mean1;
 		}
 
-		public static double Inference2(Uncertain<double>program1, Uncertain<double> program2, Uncertain<double> program3) {
+		public static double Inference2(Uncertain<double>program1, Uncertain<double> program2, Uncertain<double> program3, Uncertain<bool> flip) {
 
-			var program = from p1 in program1.SampledInference(1000, null)
-						  from p2 in program2.SampledInference(1000, null)
-						  select (p1 + p2);
+			var intermediate1 = from p1 in program1
+						  from p2 in program2
+						  from p3 in program3	
+						  select (p1 + p2 + p3); // N(1, sqrt(11))
 
-			//var enumprog = from p in program.SampledInference (1000, null)
-			//			   from p3 in program3.SampledInference (1000, null)
-			//		select (p + p3);
+			var intermediate2 = from p1 in program1
+							   from p2 in program2
+					select p1 + p2; // N(0, sqrt(2))
 
-			var final_program = program.SampledInference(1000).Support ().ToList ();
-			double sum = 0.0;
-			foreach (var v in final_program) {
-				sum = sum + v.Value;
+			var intermediate3 = from i1 in intermediate1
+							    from i2 in intermediate2
+					select i1 + i2;
+
+			var exponential1 = new Exponential (0.5);
+			var exponential2 = new Exponential (0.2);
+
+			var choice = flip.SampledInference (1).Support().ToList(); // flip a coin to choose between the two exponentials
+		
+			List<Weighted<double>> enumerate = new List<Weighted<double>> ();
+			if (Convert.ToInt32(choice.ElementAt(0).Value) == 1) {
+				Console.WriteLine (Convert.ToInt32(choice.ElementAt(0).Value));
+				var final = from e in exponential1
+							from i3 in intermediate3
+						select e + i3;
+				enumerate = final.SampledInference (1000).Support ().ToList();
+			} else {
+				Console.WriteLine (Convert.ToInt32(choice.ElementAt(0).Value));
+				var final = from e in exponential2
+							from i3 in intermediate3
+						select e + i3;
+				enumerate = final.SampledInference (1000).Support ().ToList();
 			}
-			double mean2 = sum / (double)final_program.Count;
-			return mean2;
+
+			var mean = enumerate.Select(i=>i.Value).Sum () / enumerate.Count;
+						
+			return mean;
 		}
 
 		public static void Main (string[] args)
 		{
 			var program1 = new Gaussian (0, 1);
 			var program2 = new Gaussian (0, 1);
-			var program3 = new Exponential(5);
+			var program3 = new Gaussian (1, 3);
+			var flip = new Flip (0.2);
 
-			var t1= Inference1(program1, program2, program3);
-			System.Console.WriteLine("mean1: " + t1);
-			var t2=Inference2(program1, program2, program3);			
+			//var t1= Inference1(program1, program2, program3);
+			//System.Console.WriteLine("mean1: " + t1);
+			var t2=Inference2(program1, program2, program3, flip);			
 			System.Console.WriteLine(" mean2: " + t2);	
 		}
 	}

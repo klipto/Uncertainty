@@ -38,6 +38,7 @@
     <Reference Include="InferenceDebugger">
       <HintPath>..\..\InferenceDebugger\InferenceDebugger\bin\Debug\InferenceDebugger.dll</HintPath>
     </Reference>
+    <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
