@@ -13,46 +13,67 @@ namespace ComplexInferenceBenchmark
 {
 	class MainClass
 	{
-		// NEVER CALL THIS DEVIL, YOUR COMPUTER WILL DIE.
-		public static double Inference1(Uncertain<double>program1, Uncertain<double> program2, Uncertain<double> program3) {
-            var g1 = program1.SampledInference(1000).Support().ToList();
-            var g2 = program2.SampledInference(1000).Support().ToList();
-            var exp_enum = program3.SampledInference(1000).Support().ToList();
-            
+
+		public static double Inference1(Uncertain<double>program1, Uncertain<double> program2, Uncertain<double> program3, Uncertain<bool> flip) {
+            var g1 = program1.SampledInference(10).Support().ToList ();
+            var g2 = program2.SampledInference(10).Support().ToList ();
+			var g3 = program3.SampledInference(10).Support().ToList ();       
         
-			List<Tuple<double, double>> sample_values = new List<Tuple<double,double>> ();			
+			List<Tuple<double, double>> intermediate1 = new List<Tuple<double,double>> ();			
 			foreach (var g in g1) 
             {
                 foreach (var h in g2)
                 {
-                    sample_values.Add(Tuple.Create(g.Value + h.Value, g.Probability*h.Probability));  // these values are N(0,2)               
+					foreach (var j in g3) 
+					{
+						intermediate1.Add (Tuple.Create (g.Value + h.Value + j.Value, g.Probability * h.Probability* j.Probability));     
+					}
                 }
 			}
-            List<Tuple<double, double>> sample_values1 = new List<Tuple<double, double>>();
-            foreach (var e in exp_enum)
-            {
-                foreach (var f in sample_values)
-                {
-                    sample_values1.Add(Tuple.Create((e.Value + f.Item1),e.Probability*f.Item2));
-                }
-            }
 
-            List<Tuple<double, double>> sample_values2 = new List<Tuple<double, double>>();
-            foreach (var g in g1)
-            {
-                foreach (var s in sample_values1)
-                {
-                    sample_values2.Add(Tuple.Create(g.Value + s.Item1, g.Probability*s.Item2));
-                }
-            }
+			List<Tuple<double, double>> intermediate2 = new List<Tuple<double, double>>();
 
-			double sum = 0.0;
-			foreach (var v in sample_values2) {
-				sum = sum + v.Item1;
-
+			foreach (var g in g1) 
+			{
+				foreach (var h in g2)
+				{
+					intermediate2.Add (Tuple.Create (g.Value + h.Value , g.Probability * h.Probability));     
+				}
 			}
-			double mean1 = sum / sample_values2.Count;
-			return mean1;
+
+			List<Tuple<double, double>> intermediate3 = new List<Tuple<double, double>> ();
+
+			foreach (var i1 in intermediate1) {
+				foreach (var i2 in intermediate2) {
+					intermediate3.Add (Tuple.Create(i1.Item1 + i2.Item1, i1.Item2 * i2.Item2));
+				}
+			}
+
+			var exponential1 = new Exponential (0.5).SampledInference(10).Support().ToList();
+			var exponential2 = new Exponential (0.2).SampledInference(10).Support().ToList();
+
+			var choice = flip.SampledInference (1).Support().ToList(); // flip a coin to choose between the two exponentials
+
+			List<Tuple<double,double>> enumerate = new List<Tuple<double, double>> ();
+			if (Convert.ToInt32(choice.ElementAt(0).Value) == 1) {
+				Console.WriteLine (Convert.ToInt32(choice.ElementAt(0).Value));
+				foreach (var e1 in exponential1) {
+					foreach (var i3 in intermediate3) {
+						enumerate.Add (Tuple.Create(e1.Value+i3.Item1, e1.Probability* i3.Item2));
+					}
+				}
+
+			} else {
+				Console.WriteLine (Convert.ToInt32(choice.ElementAt(0).Value));
+				foreach (var e1 in exponential2) {
+					foreach (var i3 in intermediate3) {
+						enumerate.Add (Tuple.Create(e1.Value+i3.Item1, e1.Probability* i3.Item2));
+					}
+				}
+			}
+
+			var mean = enumerate.Select(i=>i.Item1 * i.Item2).Sum ();					
+			return mean;
 		}
 
 		public static double Inference2(Uncertain<double>program1, Uncertain<double> program2, Uncertain<double> program3, Uncertain<bool> flip) {
@@ -101,10 +122,17 @@ namespace ComplexInferenceBenchmark
 			var program3 = new Gaussian (1, 3);
 			var flip = new Flip (0.2);
 
-			//var t1= Inference1(program1, program2, program3);
-			//System.Console.WriteLine("mean1: " + t1);
+			var watch1 = System.Diagnostics.Stopwatch.StartNew ();
+			var t1= Inference1(program1, program2, program3, flip);
+			watch1.Stop ();
+			var elaspedTime1 = watch1.ElapsedMilliseconds;
+			System.Console.WriteLine("Inference at ERPs: " + t1 + " time: " + elaspedTime1);
+
+			var watch2 = System.Diagnostics.Stopwatch.StartNew ();
 			var t2=Inference2(program1, program2, program3, flip);			
-			System.Console.WriteLine(" mean2: " + t2);	
+			watch2.Stop ();
+			var elaspedTime2 = watch2.ElapsedMilliseconds;
+			System.Console.WriteLine(" Inference as far from ERP as possible: " + t2 + " time: " + elaspedTime2);	
 		}
 	}
 }
