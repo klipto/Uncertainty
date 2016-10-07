@@ -14,7 +14,7 @@ namespace ComplexInferenceBenchmark
 	class MainClass
 	{
 
-		public static double Inference1(Uncertain<double>program1, Uncertain<double> program2, Uncertain<double> program3, Uncertain<bool> flip) {
+		public static Tuple<double,double> Inference1(Uncertain<double>program1, Uncertain<double> program2, Uncertain<double> program3, Uncertain<bool> flip) {
             var g1 = program1.SampledInference(10).Support().ToList ();
             var g2 = program2.SampledInference(10).Support().ToList ();
 			var g3 = program3.SampledInference(10).Support().ToList ();       
@@ -72,11 +72,12 @@ namespace ComplexInferenceBenchmark
 				}
 			}
 
-			var mean = enumerate.Select(i=>i.Item1 * i.Item2).Sum ();					
-			return mean;
+			var mean = enumerate.Select(i=>i.Item1 * i.Item2).Sum ();			
+			var variance = enumerate.Select(i=>i.Item1*i.Item1*i.Item2).Sum()-(mean*mean);
+			return Tuple.Create(mean,variance);
 		}
 
-		public static double Inference2(Uncertain<double>program1, Uncertain<double> program2, Uncertain<double> program3, Uncertain<bool> flip) {
+		public static Tuple<double,double> Inference2(Uncertain<double>program1, Uncertain<double> program2, Uncertain<double> program3, Uncertain<bool> flip) {
 
 			var intermediate1 = from p1 in program1
 						  from p2 in program2
@@ -111,8 +112,9 @@ namespace ComplexInferenceBenchmark
 				enumerate = final.SampledInference (1000).Support ().ToList();
 			}
 
-			var mean = enumerate.Select(i=>i.Value).Sum () / enumerate.Count;						
-			return mean;
+			var mean = enumerate.Select (i => i.Value * i.Probability).Sum ();
+			var variance = enumerate.Select (i => i.Value*i.Value*i.Probability).Sum () - (mean* mean);
+			return Tuple.Create(mean, variance);
 		}
 
 		public static void Main (string[] args)
@@ -126,13 +128,13 @@ namespace ComplexInferenceBenchmark
 			var t1= Inference1(program1, program2, program3, flip);
 			watch1.Stop ();
 			var elaspedTime1 = watch1.ElapsedMilliseconds;
-			System.Console.WriteLine("Inference at ERPs: " + t1 + " time: " + elaspedTime1);
+			System.Console.WriteLine("Inference at ERPs: " + t1.Item1 + " : " + t1.Item2 + " time: " + elaspedTime1);
 
 			var watch2 = System.Diagnostics.Stopwatch.StartNew ();
 			var t2=Inference2(program1, program2, program3, flip);			
 			watch2.Stop ();
 			var elaspedTime2 = watch2.ElapsedMilliseconds;
-			System.Console.WriteLine("Inference as far from ERP as possible: " + t2 + " time: " + elaspedTime2);	
+			System.Console.WriteLine("Inference as far from ERP as possible: " + t2.Item1 + " : " + t2.Item2 + " time: " + elaspedTime2);	
 		}
 	}
 }
