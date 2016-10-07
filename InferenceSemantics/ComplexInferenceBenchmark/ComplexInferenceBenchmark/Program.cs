@@ -64,7 +64,7 @@ namespace ComplexInferenceBenchmark
 				}
 
 			} else {
-				Console.WriteLine ("Flip value: " +  Convert.ToInt32(choice.ElementAt(0).Value));
+				Console.WriteLine ("Flip value: " + Convert.ToInt32(choice.ElementAt(0).Value));
 				foreach (var e1 in exponential2) {
 					foreach (var i3 in intermediate3) {
 						enumerate.Add (Tuple.Create(e1.Value+i3.Item1, e1.Probability* i3.Item2));
@@ -97,8 +97,8 @@ namespace ComplexInferenceBenchmark
 			var choice = flip.SampledInference (1).Support().ToList(); // flip a coin to choose between the two exponentials
 		
 			List<Weighted<double>> enumerate = new List<Weighted<double>> ();
-			if (Convert.ToInt32("Flip value: " + choice.ElementAt(0).Value) == 1) {
-				Console.WriteLine (Convert.ToInt32(choice.ElementAt(0).Value));
+			if (Convert.ToInt32(choice.ElementAt(0).Value) == 1) {
+				Console.WriteLine ("Flip value: " + Convert.ToInt32(choice.ElementAt(0).Value));
 				var final = from e in exponential1
 							from i3 in intermediate3
 						select e + i3;
