@@ -56,7 +56,7 @@ namespace ComplexInferenceBenchmark
 
 			List<Tuple<double,double>> enumerate = new List<Tuple<double, double>> ();
 			if (Convert.ToInt32(choice.ElementAt(0).Value) == 1) {
-				Console.WriteLine (Convert.ToInt32(choice.ElementAt(0).Value));
+				Console.WriteLine ("Flip value: " +  Convert.ToInt32(choice.ElementAt(0).Value));
 				foreach (var e1 in exponential1) {
 					foreach (var i3 in intermediate3) {
 						enumerate.Add (Tuple.Create(e1.Value+i3.Item1, e1.Probability* i3.Item2));
@@ -64,7 +64,7 @@ namespace ComplexInferenceBenchmark
 				}
 
 			} else {
-				Console.WriteLine (Convert.ToInt32(choice.ElementAt(0).Value));
+				Console.WriteLine ("Flip value: " +  Convert.ToInt32(choice.ElementAt(0).Value));
 				foreach (var e1 in exponential2) {
 					foreach (var i3 in intermediate3) {
 						enumerate.Add (Tuple.Create(e1.Value+i3.Item1, e1.Probability* i3.Item2));
@@ -97,14 +97,14 @@ namespace ComplexInferenceBenchmark
 			var choice = flip.SampledInference (1).Support().ToList(); // flip a coin to choose between the two exponentials
 		
 			List<Weighted<double>> enumerate = new List<Weighted<double>> ();
-			if (Convert.ToInt32(choice.ElementAt(0).Value) == 1) {
+			if (Convert.ToInt32("Flip value: " + choice.ElementAt(0).Value) == 1) {
 				Console.WriteLine (Convert.ToInt32(choice.ElementAt(0).Value));
 				var final = from e in exponential1
 							from i3 in intermediate3
 						select e + i3;
 				enumerate = final.SampledInference (1000).Support ().ToList();
 			} else {
-				Console.WriteLine (Convert.ToInt32(choice.ElementAt(0).Value));
+				Console.WriteLine ("Flip value: " + Convert.ToInt32(choice.ElementAt(0).Value));
 				var final = from e in exponential2
 							from i3 in intermediate3
 						select e + i3;
@@ -132,7 +132,7 @@ namespace ComplexInferenceBenchmark
 			var t2=Inference2(program1, program2, program3, flip);			
 			watch2.Stop ();
 			var elaspedTime2 = watch2.ElapsedMilliseconds;
-			System.Console.WriteLine(" Inference as far from ERP as possible: " + t2 + " time: " + elaspedTime2);	
+			System.Console.WriteLine("Inference as far from ERP as possible: " + t2 + " time: " + elaspedTime2);	
 		}
 	}
 }
