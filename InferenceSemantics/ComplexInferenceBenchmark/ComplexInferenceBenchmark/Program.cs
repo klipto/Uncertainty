@@ -135,6 +135,8 @@ namespace ComplexInferenceBenchmark
 			watch2.Stop ();
 			var elaspedTime2 = watch2.ElapsedMilliseconds;
 			System.Console.WriteLine("Inference as far from ERP as possible: " + t2.Item1 + " : " + t2.Item2 + " time: " + elaspedTime2);	
+
+			System.Console.WriteLine ("True mean and variance when Flip = 0: 6, 42" );
 		}
 	}
 }
