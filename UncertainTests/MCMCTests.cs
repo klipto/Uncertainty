@@ -337,48 +337,6 @@ namespace UncertainTests
         }
 
 
-        private static int Func(int[] input)
-        {
-            
-            return state;
-        }
-
-        private static IEnumerable<Uncertain<int>> LiftedFunc(IEnumerable<Uncertain<int>> unput)
-        {
-            Uncertain<int> ustate = 0;
-            foreach (var u in unput)
-            {
-                ustate = from s in ustate
-                         from i in u
-                         let f = Func(s, i)  
-                         select f;
-                yield return ustate;
-            }
-        }
-
-        [TestMethod]
-        public void TestLifting()
-        {
-            var input = Enumerable.Range(0, 7);
-            var unput = input.Select(_ => new Uniform<int>(0, 3));
-
-            var state = 0;
-            foreach(var i in input)
-            {
-                state = Func(state, i);
-            }
-
-
-            var data = LiftedFunc(unput).USeq(2);
-            
-            var ustate = LiftedFunc(unput).Last();
-            var output = ustate.Inference().Support().OrderByDescending(k => k.Probability).ToList();
-
-            var output1 = data.Inference(new SequenceComparer<int>()).Support().OrderByDescending(k => k.Probability).ToList();
-
-            int x = 10;
-        }
-
 
         [TestMethod]
         public void TestDan()

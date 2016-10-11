@@ -52,7 +52,7 @@ namespace UncertainTests
 
             Uncertain<GeoLocation> roads = null;
             Uncertain<GeoLocation> gps = null;
-            Func<GeoLocation, GeoLocation, double> Likelihood = (_) => 1.0;
+            Func<GeoLocation, GeoLocation, double> Likelihood = (a,b) => 1.0;
             var p =
                 from pos in gps
                 from road in roads
