@@ -7,6 +7,7 @@ namespace Microsoft.Research.Uncertain
 {
     public class Inference<T> : Uncertain<T>
     {
+
         public Uncertain<T> Source { get; private set; }
         public readonly IEqualityComparer<T> comparer;
 
