@@ -19,11 +19,11 @@ namespace DependenceAnalysis
 
 		public Uncertain<double> UncertainProgram() {
 			Uncertain<double> x = new Exponential (2);
-			Uncertain<int> y = new Exponential (3);
+			Uncertain<double> y = new Exponential (3);
 
 			var p = from a in x
 					from b in y
-				select a + b;
+					select a + b;
 			return p;
 		}
 	}
