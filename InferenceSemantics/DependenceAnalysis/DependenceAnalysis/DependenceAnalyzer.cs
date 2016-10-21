@@ -99,8 +99,8 @@ namespace DependenceAnalysis
 			foreach (var primitive1 in primitives_parameters) {
 				foreach (var primitive2 in primitives_parameters) {
 					double product_sum = 0.0;
-					double d_val1=0.0, d_val2=0.0;
-					int i_val1=0, i_val2=0;
+					double d_val1=1.0, d_val2=1.0;
+					int i_val1=1, i_val2=1;
 					for (int x=0; x<sample_size; x++) {
 						if (primitive1.samples [x].Value.GetType ().ToString ().Contains ("Double")) {
 							d_val1 = (double)(primitive1.samples [x].Value); 
@@ -114,11 +114,11 @@ namespace DependenceAnalysis
 						if (primitive2.samples [x].Value.GetType ().ToString ().Contains ("Int")) {
 							i_val2 = (int)(primitive2.samples [x].Value); 
 						}
-						product_sum = product_sum + d_val1 + d_val2 + i_val1 + i_val2;
-						d_val1 = 0.0;
-						d_val2=0.0;
-						i_val1 = 0;
-						i_val2=0;
+						product_sum = product_sum + (d_val1 * d_val2 * i_val1 * i_val2);
+						d_val1 = 1.0;
+						d_val2=1.0;
+						i_val1 = 1;
+						i_val2=1;
 					}
 					double correlation = ((sample_size * product_sum) - (primitive1.sum * primitive2.sum)) / (primitive1.stddev * primitive2.stddev);
 					correlation_coefficients.Add (Tuple.Create (Tuple.Create (primitive1.ID, primitive2.ID), correlation));
