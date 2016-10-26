@@ -266,7 +266,10 @@ namespace Microsoft.Research.Uncertain.Inference
 {
     public static class Extensions
     {
-        public static Dictionary<object, Tuple<string, int>> inferences = new Dictionary<object, Tuple<string,int>>();
+		public static int extension_int = 11;
+        //public static Dictionary<object, Tuple<string, int>> inferences = new Dictionary<object, Tuple<string,int>>();
+		public static List<Tuple<int, Tuple<string, int >>> inference_information = new List<Tuple<int, Tuple<string, int>>>();
+		public static List<object> inferences = new List<object>();
 
         public static Uncertain<T> RunInference<T>(IList<Weighted<T>> data, IEqualityComparer<T> comparer = null)
         {
@@ -301,8 +304,14 @@ namespace Microsoft.Research.Uncertain.Inference
 
         public static Uncertain<T> Inference<T>(this Uncertain<T> source, IEqualityComparer<T> comparer = null)
         {
-            inferences.Add(new Inference<T>(source, comparer), new Tuple<string, int>(source.ToString(), 0));
-            return RunInference(source.Support().ToList(), comparer);
+            
+			var inference = new Inference<T> (source, comparer, 0);
+			inferences.Add (inference);
+			var inner_tuple = new Tuple<string, int> (source.ToString(), 0);
+			var outer_tuple = new Tuple<int, Tuple<string, int>> (inference.GetHashCode(), inner_tuple);
+			inference_information.Add (outer_tuple);
+            
+			return RunInference(source.Support().ToList(), comparer);
         }
 
         public static Uncertain<T> SampledInference<T>(this Uncertain<T> source, int samplesize, IEqualityComparer<T> comparer = null)
@@ -310,8 +319,14 @@ namespace Microsoft.Research.Uncertain.Inference
             var sampler = Sampler.Create(source);
             // cache data
             var data = sampler.Take(samplesize).ToList();
-            inferences.Add(new Inference<T>(source, comparer), new Tuple<string, int>(source.ToString(),samplesize));
-            return RunInference(data, comparer);
+            
+			var inference = new Inference<T> (source, comparer, samplesize);
+			inferences.Add (inference);
+			var inner_tuple = new Tuple<string, int> (source.ToString(), samplesize);
+			var outer_tuple = new Tuple<int, Tuple<string, int>> (inference.GetHashCode(), inner_tuple);
+			inference_information.Add (outer_tuple);
+
+			return RunInference(data, comparer);
         }
 
         public static Uncertain<T> Where<T>(this Uncertain<T> source, Predicate<T> predicate)

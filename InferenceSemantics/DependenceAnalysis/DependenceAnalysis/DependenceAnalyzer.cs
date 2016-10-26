@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Microsoft.Research.Uncertain;
-using Microsoft.Research.Uncertain.InferenceDebugger;
+//using Microsoft.Research.Uncertain.InferenceDebugger;
 using Microsoft.Research.Uncertain.Inference;
 
 namespace DependenceAnalysis
@@ -17,52 +17,52 @@ namespace DependenceAnalysis
 		private object sample;
 
 		public List<object> random_primitives{ get; private set;}
+		public List<int> dependencies;
 
 		public DependenceAnalyzer()
 		{
 			this.random_primitives = new List<object> ();
-
+			this.dependencies = new List<int>();
 		}
 
 		public void Visit<T>(RandomPrimitive<T> erp)
 		{
-			this.sample = erp.Sample(this.generation++);
+			//this.sample = erp.Sample(this.generation++);
 			random_primitives.Add(erp);
+
 		}
 
 		public void Visit<T>(Where<T> where)
 		{
 			where.source.Accept(this);
-
 		}
 
 		public void Visit<TSource, TResult>(Select<TSource, TResult> select)
 		{
 			select.source.Accept (this);
+			dependencies.Add (select.source.GetHashCode());
 		}
 
 		public void Visit<TSource, TCollection, TResult>(SelectMany<TSource, TCollection, TResult> selectmany)
 		{
+
 			selectmany.source.Accept(this);
 			TSource a = (TSource) this.sample;
 
 			Uncertain<TCollection> otherSampler = (selectmany.CollectionSelector.Compile())((TSource)this.sample);
 			otherSampler.Accept(this);
-			TCollection b = (TCollection) this.sample;
-
-			Weighted<TResult> result = (selectmany.ResultSelector.Compile())(a, b);
-
-			this.sample = result.Value;
+			//dependencies.Add ();
 		}
 
 		public void Visit<T>(Inference<T> inference)
 		{
-			inference.Source.Accept(this);
+			dependencies.Clear ();
+
+			inference.source.Accept (this);
+			inference.inference_dependencies.AddRange(this.dependencies);
 		}
 
-
-		// Could we do something more clever here by exploiting more statistics? For now, I think correlation is going to work just fine.
-		public static List<Tuple<Tuple<int, int>, double>> correlationCalculator(List<object> primitives)  
+		public List<Tuple<Tuple<int, int>, double>> correlationCalculator(List<object> primitives)  
 		{
 			// compute correlation among the pairs in primitives by drawing 1000 sample values and finding the correlation
 			List<Tuple<Tuple<int, int>, double>> correlation_coefficients = new List<Tuple<Tuple<int, int>, double>>();
@@ -75,6 +75,7 @@ namespace DependenceAnalysis
 				    && primitive.GetType ().BaseType.ToString ().Contains ("Double")) {
 
 					List<Weighted<double>> samples = ((RandomPrimitive<double>)primitive).SampledInference (sample_size).Support ().ToList ();
+					Microsoft.Research.Uncertain.Inference.Extensions.inferences.RemoveAt (Microsoft.Research.Uncertain.Inference.Extensions.inferences.Count-1);
 
 					double sum = samples.Select (i => Convert.ToDouble (i.Value)).Sum ();
 					double square_sum = samples.Select (i => Convert.ToDouble (i.Value) * Convert.ToDouble (i.Value)).Aggregate ((a, b) => a + b);
@@ -87,12 +88,12 @@ namespace DependenceAnalysis
 				    && primitive.GetType ().BaseType.ToString ().Contains ("Int")) {
 
 					List<Weighted<int>> samples = ((RandomPrimitive<int>)primitive).SampledInference (sample_size).Support ().ToList ();
+					Microsoft.Research.Uncertain.Inference.Extensions.inferences.RemoveAt (Microsoft.Research.Uncertain.Inference.Extensions.inferences.Count-1);
 
 					double sum = samples.Select (i => Convert.ToInt32 (i.Value)).Sum ();
 					double square_sum = samples.Select (i => Convert.ToInt32 (i.Value) * Convert.ToInt32 (i.Value)).Aggregate ((a, b) => a + b);
 					double stddev = Math.Sqrt (sample_size * square_sum - Math.Pow (sum, 2));
 					primitives_parameters.Add (new ParametersOfERPs(((RandomPrimitive<int>)primitive).GetStructuralHash (), samples, sum, stddev));
-
 				}
 			}
 
@@ -125,6 +126,40 @@ namespace DependenceAnalysis
 				}
 			}
 			return correlation_coefficients;
+		}
+
+		public bool earlyInferenceDetector() {
+			bool wrong_inference = false;
+			var inferences = Microsoft.Research.Uncertain.Inference.Extensions.inferences;
+			Dictionary<int, List<int>> inferences_with_dependencies = new Dictionary<int, List<int>>();
+			foreach (var inference in inferences) {
+				if (inference.GetType ().ToString ().Contains ("Microsoft.Research.Uncertain.Inference")) {
+					if (inference.GetType ().ToString ().Contains ("Double")) {
+						((Microsoft.Research.Uncertain.Inference<double>)inference).Accept (this);
+						inferences_with_dependencies.Add(((Microsoft.Research.Uncertain.Inference<double>)inference).GetHashCode(),
+						                                 ((Microsoft.Research.Uncertain.Inference<double>)inference).inference_dependencies);
+					}
+					else if (inference.GetType ().ToString ().Contains ("Int")) {
+						((Microsoft.Research.Uncertain.Inference<int>)inference).Accept (this);
+						inferences_with_dependencies.Add(((Microsoft.Research.Uncertain.Inference<double>)inference).GetHashCode(),
+						                                 ((Microsoft.Research.Uncertain.Inference<double>)inference).inference_dependencies);
+
+					}
+				}
+			}
+			foreach(var inference1 in inferences_with_dependencies.Keys) {
+				foreach (var inference2 in inferences_with_dependencies.Keys) {
+					if (!inference1.Equals (inference2)) {
+						if (inferences_with_dependencies [inference1].ToList().Intersect (inferences_with_dependencies[inference2].ToList()).Any ()) {
+							wrong_inference = true;
+							break;
+						} else {
+							continue;
+						}
+					}
+				}
+			}
+			return wrong_inference;
 		}
 	}
 }

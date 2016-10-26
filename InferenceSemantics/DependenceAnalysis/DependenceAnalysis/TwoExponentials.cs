@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Microsoft.Research.Uncertain;
-using Microsoft.Research.Uncertain.InferenceDebugger;
+//using Microsoft.Research.Uncertain.InferenceDebugger;
 using Microsoft.Research.Uncertain.Inference;
 
 namespace DependenceAnalysis
@@ -26,6 +26,7 @@ namespace DependenceAnalysis
 					select a + b;
 			return p;
 		}
+
 	}
 }
 
