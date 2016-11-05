@@ -11,10 +11,11 @@ using Microsoft.Research.Uncertain.Inference;
 
 namespace DependenceAnalysis
 {
-	public class TwoExponentials
+	public class TwoExponentials: Passert<double>
 	{
 		public TwoExponentials ()
 		{
+
 		}
 
 		public Uncertain<double> UncertainProgram() {
@@ -24,8 +25,12 @@ namespace DependenceAnalysis
 			var p = from a in x
 					from b in y
 					select a + b;
+	
+			var tt = (p  < 1);
+			var interval = passert (tt, 0.9);
 			return p;
 		}
+
 
 	}
 }
