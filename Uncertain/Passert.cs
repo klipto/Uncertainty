@@ -11,8 +11,16 @@ namespace Microsoft.Research.Uncertain
 		{
 		}
 
-		public virtual Tuple<double, double> passert (params Uncertain<T> [] v) {
-			return Tuple.Create(0.0, 0.0);
+		public virtual bool passert (Uncertain<bool> condition, double probability) {
+
+			if (condition.Pr (probability))
+				return true;
+			else
+				return false;
+		}
+
+		public virtual bool passert (params Uncertain<T> [] v) {
+			return false;
 		}
 	}
 }
