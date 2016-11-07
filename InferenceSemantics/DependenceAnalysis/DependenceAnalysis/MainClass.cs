@@ -16,13 +16,14 @@ namespace DependenceAnalysis
 		public static void Main(string[] args)
 		{		
 			DependenceAnalyzer<double> analyzer = new DependenceAnalyzer<double> ();
-			//TwoExponentials t1 = new TwoExponentials ();
-			//t1.UncertainProgram().Accept(analyzer);
-			//var result = analyzer.correlationCalculator(analyzer.random_primitives);
+			TwoExponentials t1 = new TwoExponentials ();
+			t1.UncertainProgram ();
+		//	t1.UncertainProgram().Accept(analyzer);
+		//	var result1 = analyzer.correlationCalculator(analyzer.random_primitives);
 
-			WrongInferenceLocation w = new WrongInferenceLocation();
-			w.UncertainProgram ();
-			bool result = analyzer.earlyInferenceDetector ();
+		//	WrongInferenceLocation w = new WrongInferenceLocation();
+		//	w.UncertainProgram ();
+		//	bool result2 = analyzer.earlyInferenceDetector ();
 		}
 	}
 }

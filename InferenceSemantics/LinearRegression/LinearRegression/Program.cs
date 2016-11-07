@@ -1,4 +1,4 @@
-﻿using libsvm;
+using libsvm;
 using MathNet.Numerics.LinearAlgebra;
 using System;
 using System.Collections.Generic;
@@ -15,35 +15,7 @@ namespace LinearRegression
 {
     class Program
     {
-        private static void UncertainSGD(Matrix<double> X, Matrix<double> Y)
-        {
-            /*Contract.Requires(X.RowCount == Y.RowCount);
-            var alpha = 0.0001F;
-            var w = Matrix<double>.Build.Dense(X.ColumnCount, Y.ColumnCount, 0F);
-            var rand = new Random(0);
-            var count = 0;
-            while (true)
-            //for (int i = 0; i < X.RowCount; i++)
-            {
-                count++;
-
-                var index = rand.Next(0, X.RowCount);
-                var xi = X.Row(index).ToColumnMatrix();
-                var yi = Y.Row(index).ToColumnMatrix();
-
-                w -= alpha * xi * (xi.TransposeThisAndMultiply(w) - yi);
-                if (count % 1000 == 0)
-                {
-                    var tmp = (X * w - Y);
-                    var error = tmp.TransposeThisAndMultiply(tmp)[0, 0] / (float)X.RowCount;
-                    Console.WriteLine(error);
-                }
-            } */
-
-            var w = Matrix<double>.Build.Dense(X.ColumnCount, Y.ColumnCount, 0);
-            //Uncertain<double> sigma_prior = new MathNet.Numerics.Distributions.B
-
-        }
+       
         private static void BayesianTrain(Matrix<double> X, Matrix<double> Y)
         {
             double lambda = 0.5;
@@ -97,9 +69,9 @@ namespace LinearRegression
               from a in new Microsoft.Research.Uncertain.MultivariateNormal(mu, s_sq, I).SampledInference(k) // p(w|y)~N(mu, s)
               select a;
             Debugger<Matrix<double>> doubleDebugger = new Debugger<Matrix<double>>(0.001, 100, 1000);
-            var hyper = from k1 in doubleDebugger.hyperParameterModel.truncatedGeometric
-                        select Tuple.Create(k1, doubleDebugger.hyperParameterModel.truncatedGeometric.Score(k1));
-            var best_hyper_parameter = doubleDebugger.ComplexDebugSampleSize(doubleDebugger.hyperParameterModel, F, mu, s_sq , hyper);
+			var hyper = from k1 in ((TruncatedHyperParameterModel)doubleDebugger.hyperParameterModel).truncatedGeometric
+				select Tuple.Create(k1, ((TruncatedHyperParameterModel)doubleDebugger.hyperParameterModel).truncatedGeometric.Score(k1));
+			var best_hyper_parameter = doubleDebugger.ComplexDebugSampleSize((TruncatedHyperParameterModel)doubleDebugger.hyperParameterModel, F, mu, s_sq , hyper);
 
             List<Tuple<int, Matrix<double>>> meta_inferred_success_list = new List<Tuple<int, Matrix<double>>>();
             
@@ -129,12 +101,42 @@ namespace LinearRegression
             return counter;
         }
 
-        private static Matrix<double> Train(Matrix<double> X, Matrix<double> Y)
+        private static Tuple<int,Matrix<double>> MaximumLikelihoodTrain(Matrix<double> X, Matrix<double> Y, double alpha, double tolerance)
         {
-            Contract.Requires(X.RowCount == Y.RowCount);
-            var alpha = 0.0001F;
-            var w = Matrix<double>.Build.Dense(X.ColumnCount, Y.ColumnCount, 0F);
+			Matrix<Double> w = Matrix<Double>.Build.Dense(X.ColumnCount, Y.ColumnCount, 0);
+			Matrix<Double> guess = X * w;
+			var rand = new Random(0);
+			double error = (guess - Y).L2Norm();
+			Console.WriteLine ("original error:" + error);
+			var count = 0;
+
+			while (true)
+			{
+				//w = w - alpha * X.Transpose() *(guess - Y) ;
+				var index = rand.Next(0, X.RowCount);
+				var xi = X.Row(index).ToColumnMatrix();
+				var yi = Y.Row(index).ToColumnMatrix();
+
+				w = w - alpha * xi * (xi.TransposeThisAndMultiply(w) - yi);
+				guess = X * w;
+				var thiserror = (guess - Y).L2Norm();
+				Console.WriteLine ("this_error: " + thiserror);
+				Console.WriteLine ("error difference: "+Math.Abs(thiserror - error));
+				if (Math.Abs(error - thiserror) < tolerance) 
+				{
+					break;
+				}
+				error = thiserror;
+				count++;
+			}
+			Console.WriteLine ("count:"+ count);
+			// note cast to Uncertain<Vector<Double>>
+			var ret = Tuple.Create (count, w);
+			return ret;
+
+			/*var w = Matrix<double>.Build.Dense(X.ColumnCount, Y.ColumnCount, 0F);
             var rand = new Random(0);
+			var error = w * X;
             var count = 0;
             while (true)
             //for (int i = 0; i < X.RowCount; i++)
@@ -149,14 +151,50 @@ namespace LinearRegression
                 if (count % 1000 == 0)
                 {
                     var tmp = (X * w - Y);
-                    var error = tmp.TransposeThisAndMultiply(tmp)[0, 0] / (float)X.RowCount;
+                    var new_error = tmp.TransposeThisAndMultiply(tmp)[0, 0] / (float)X.RowCount;
                     Console.WriteLine(error);
                 }
             }
-            return w;
+            return w;*/
         }
+
         static void Main(string[] args)
         {
+			var TRAINING_FILE = "ijcnn11";                        
+			var data = ProblemHelper.ReadAndScaleProblem(TRAINING_FILE);
+			var numexamples = data.l;
+			var numfeatures = (from example in data.x
+			                   from column in example
+			                   select column.index).Max() + 1;
+
+			var X = Matrix<double>.Build.Sparse(numexamples, numfeatures);
+			var Y = Matrix<double>.Build.Dense(numexamples, 1);
+
+			for (int i = 0; i < data.l; i++)
+			{
+				foreach (var column in data.x[i])
+				{
+					X[i, column.index] = (float)column.value;
+				}
+				Y[i, 0] = (float)data.y[i];
+			} 
+
+			//BayesianTrain(X, Y);
+
+			Func<double, Tuple<int, Matrix<double>>> F = (a) =>	MaximumLikelihoodTrain (X, Y, a, 0.01);
+
+			List<Weighted<double>> alphas = 
+				new List<Weighted<double>> (new Weighted<double>[] {new Weighted<double>(0.001, 0.3), new Weighted<double>(0.01, 0.6), new Weighted<double>(0.1, 0.1)});
+
+			Debugger<double> doubleDebugger = new Debugger<double> (alphas);
+			var alpha = from k1 in ((FiniteEnumHyperParameterModel)
+			                        doubleDebugger.hyperParameterModel).finiteEnumeration
+				select Tuple.Create(k1, ((FiniteEnumHyperParameterModel)doubleDebugger.hyperParameterModel).finiteEnumeration.Score(k1));
+
+			double best_alpha = doubleDebugger.DebugAlphaLearningRate((FiniteEnumHyperParameterModel)doubleDebugger.hyperParameterModel, F, alpha);
+
+			//var w = MaximumLikelihoodTrain(X, Y, 0.001, 0.01);
+
 			DateTime start1 = DateTime.Now;
 			var program1 = from a in new Flip (0.9)
 						   from b in new Flip (0.9)
@@ -177,27 +215,8 @@ namespace LinearRegression
 
 			var difference2 = stop2 - start2;
 
-            /*var TRAINING_FILE = "ijcnn11";                        
-            var data = ProblemHelper.ReadAndScaleProblem(TRAINING_FILE);
-            var numexamples = data.l;
-            var numfeatures = (from example in data.x
-                               from column in example
-                               select column.index).Max() + 1;
+       
 
-            var X = Matrix<double>.Build.Sparse(numexamples, numfeatures);
-            var Y = Matrix<double>.Build.Dense(numexamples, 1);
-
-            for (int i = 0; i < data.l; i++)
-            {
-                foreach (var column in data.x[i])
-                {
-                    X[i, column.index] = (float)column.value;
-                }
-                Y[i, 0] = (float)data.y[i];
-            }
-            BayesianTrain(X, Y);
-            var w = Train(X, Y);
-*/
         }
     }
 }

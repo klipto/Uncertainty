@@ -6,8 +6,6 @@ using System.Threading.Tasks;
 
 using System.IO;
 
-
-
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
@@ -25,6 +23,7 @@ namespace SearchEngine
         }
 
         private IndexWriter indexWriter=null;
+
         public IndexWriter getIndexWriter(bool create)
         {
             if (indexWriter == null)

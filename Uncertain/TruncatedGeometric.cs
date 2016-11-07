@@ -18,26 +18,28 @@ namespace Microsoft.Research.Uncertain
             this.a = a;
             this.b = b;
         }
-
+					
         public double CDF(int n)
         {
             return (1 - Math.Pow(1 - base.p, n + 1));
         }
-
-
+				
         public override int GetSample()
         {
-            Random rand = new Random();
-            if (b > a)
+            Random rand = new Random();   
+
+			if (b > a)
             {
-                var sample = (Math.Log((rand.NextDouble() * (CDF(a) - CDF(b)) / Math.Pow((1 - p), a)) + 1) / Math.Log(1 - p)) + a - 1;
-                return (int)(sample);
+                var sample = (Math.Log((rand.NextDouble() * (CDF(a) - CDF(b)) / Math.Pow((1 - p), a)) + 1 )/Math.Log (1 - p)) + a - 1;
+            	return (int)(sample);
             }
+
             else if (a > b)
             {
                 var sample = (Math.Log((rand.NextDouble() * (CDF(b) - CDF(a)) / Math.Pow((1 - p), b)) + 1) / Math.Log(1 - p)) + b - 1;
                 return (int)(sample);
             }
+
             else return 0;
         }
 

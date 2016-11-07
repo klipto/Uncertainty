@@ -16,21 +16,42 @@ using System.Linq.Expressions;
 
 namespace Microsoft.Research.Uncertain.InferenceDebugger
 {
-    public struct HyperParameterModel
+    public interface HyperParameterModel
     {
-        public TruncatedGeometric truncatedGeometric;
-        public HyperParameterModel(double p, int a, int b)
-        {
-            truncatedGeometric = new TruncatedGeometric(p, a, b);
-        }
     }
+
+	public struct TruncatedHyperParameterModel : HyperParameterModel {
+		public TruncatedGeometric truncatedGeometric;
+
+		public TruncatedHyperParameterModel(double p, int a, int b)
+		{
+			truncatedGeometric = new TruncatedGeometric(p, a, b);
+		}
+	}
+
+	public struct FiniteEnumHyperParameterModel : HyperParameterModel {
+		public FiniteEnumeration<double> finiteEnumeration;
+
+		public FiniteEnumHyperParameterModel(List<Weighted<double>> weighted_doubles) {
+			finiteEnumeration = new FiniteEnumeration<double> (weighted_doubles);
+		}
+	}
+
     public class Debugger<R>
     {
         public HyperParameterModel hyperParameterModel;
+
         public Debugger(double p, int a, int b)
         {
-            hyperParameterModel = new HyperParameterModel(p, a, b);
+            hyperParameterModel = new TruncatedHyperParameterModel(p, a, b);
         }
+
+		public Debugger(List<Weighted<double>> weighted_doubles)
+		{
+			hyperParameterModel = new FiniteEnumHyperParameterModel (weighted_doubles);
+		}
+
+
 
         static Func<int, double, Uncertain<R>, Tuple<int, double, List<Weighted<R>>, double>> TVariateGenerator = (k, population_mean, sample) =>
         {
@@ -80,10 +101,11 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             return max_likelihoods_for_each_sample_size;
         };
 
-        Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double>>, HyperParameterModel, Tuple<int, List<Weighted<R>>>> BestKSelectorForSampleSize = (best_samples_of_fixed_size, model) =>
+        Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double>>, TruncatedHyperParameterModel, Tuple<int, List<Weighted<R>>>> BestKSelectorForSampleSize = 
+			(best_samples_of_fixed_size, model) =>
         {
             int k = 0;
-            
+
             string file = "utility_example.txt";
             using (StreamWriter sw = new StreamWriter(file))
             {
@@ -166,15 +188,14 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
         };
 
 
-        Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double, double>>, HyperParameterModel, Tuple<int, List<Weighted<R>>>> BestKSelectorForTopk = (best_samples_of_fixed_size, model) =>
+        Func<IEnumerable<Tuple<int, double, List<Weighted<R>>, double, double>>, TruncatedHyperParameterModel, Tuple<int, List<Weighted<R>>>> BestKSelectorForTopk = (best_samples_of_fixed_size, model) =>
         {
             int k = 0;
             string file = "utility_example.txt";
             using (StreamWriter sw = new StreamWriter(file))
             {
                 List<Tuple<double, int, double, List<Weighted<R>>, double, double>> utilities = new List<Tuple<double, int, double, List<Weighted<R>>, double, double>>();
-                foreach (var tuple in best_samples_of_fixed_size)
-                {
+                foreach (var tuple in best_samples_of_fixed_size) {
                     double likelihood = tuple.Item2;
                     double var_underlying_program = (tuple.Item4);
                     double variance_inverse = (double)(tuple.Item1 - 3) / (double)(tuple.Item1 - 1);
@@ -185,6 +206,7 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
                     utilities.Add(newTuple);
                     sw.WriteLine(tuple.Item1 + " " + utility);
                 }
+
                 var ordered_utilities = utilities.OrderByDescending(i => i.Item1);
                 var max_utility = ordered_utilities.ElementAt(0).Item1;
                 List<Tuple<double, int, double, List<Weighted<R>>>> best_utilities = new List<Tuple<double, int, double, List<Weighted<R>>>>();
@@ -202,9 +224,22 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             }
         };
 
+		public double DebugAlphaLearningRate(FiniteEnumHyperParameterModel model, Func<double, Tuple<int, Matrix<double>>> program, Uncertain<Tuple<double, double>>hyper_params) 
+		{
+			List<Tuple<double, Weighted<Tuple<double, double>>>> ratios = new List<Tuple<double, Weighted<Tuple<double, double>>>> ();
+
+			foreach(var k1 in hyper_params.Support().ToList()) {							
+				var ratio = k1.Value.Item2 / program (k1.Value.Item1).Item1;
+				ratios.Add (Tuple.Create(ratio, k1));
+			}
+
+			ratios.OrderByDescending (i=>i.Item1);
+			return ratios.ElementAt (0).Item2.Value.Item1;
+		}
+
 
                
-        public Tuple<int, List<Weighted<R>>> DebugSampleSize<R>(HyperParameterModel model, Func<int, Uncertain<R>> program, double population_mean, Uncertain<Tuple<int, double>> hyper_params)
+        public Tuple<int, List<Weighted<R>>> DebugSampleSize<R>(TruncatedHyperParameterModel model, Func<int, Uncertain<R>> program, double population_mean, Uncertain<Tuple<int, double>> hyper_params)
         {
             var uncertain_program = from k1 in hyper_params
                                     let prog = program(k1.Item1)
@@ -214,7 +249,7 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             return best_hyper_parameter;
         }        
  
-        public Tuple<int, List<Weighted<R>>> DebugTopk<R>(HyperParameterModel model, Func<int, Uncertain<R>> program, double population_mode, double population_mean, Uncertain<Tuple<int, double>> hyper_params,
+        public Tuple<int, List<Weighted<R>>> DebugTopk<R>(TruncatedHyperParameterModel model, Func<int, Uncertain<R>> program, double population_mode, double population_mean, Uncertain<Tuple<int, double>> hyper_params,
             RandomPrimitive<R> function)
         {
             var uncertain_program = from k1 in hyper_params
@@ -225,7 +260,7 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             return best_hyper_parameter;
         }
 
-        public Tuple<double, double, double, List<Weighted<Matrix<double>>>, int> ComplexDebugSampleSize(HyperParameterModel model, 
+		public Tuple<double, double, double, List<Weighted<Matrix<double>>>, int> ComplexDebugSampleSize(TruncatedHyperParameterModel model, 
             Func<int, Uncertain<Matrix<double>>> program, Matrix<double> population_mean, Matrix<double> population_var,Uncertain<Tuple<int, double>> hyper_params)
         {
             var uncertain_program = from k1 in hyper_params
@@ -260,5 +295,6 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             var best_sample = sample_parameters.OrderByDescending(i=> i.Item3).ElementAt(0);
             return best_sample;           
         }
+
     }
 }

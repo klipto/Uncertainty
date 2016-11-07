@@ -53,9 +53,12 @@ namespace Microsoft.Research.Uncertain
         internal const int SAMPLE_SIZE_STEP = 10;
 
         internal static Random rand;
-        static Extensions()
+		public static Tuple<double, double> p_ci = new Tuple<double, double>(0.0, 0.0);
+
+		static Extensions()
         {
             Extensions.rand = new Random(0);
+
         }
         internal static double NextRandom()
         {
@@ -195,11 +198,15 @@ namespace Microsoft.Research.Uncertain
                 // If we can accept H_1 then P > Prob, so return true
                 if (LogLikelihood >= B)
                 {
+					Tuple<double, double> tup = new Tuple<double, double>(B, LogLikelihood);
+					p_ci = tup;
                     return true;
                 }
                 // If we can accept H_0 then P < Prob, so return false
                 if (LogLikelihood <= A)
                 {
+					Tuple<double, double> tup = new Tuple<double, double>(B, LogLikelihood);
+					p_ci = tup;
                     return false;
                 }
 

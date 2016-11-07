@@ -19,6 +19,9 @@ namespace DependenceAnalysis
 		}
 
 		public Uncertain<double> UncertainProgram() {
+			double v = 0.5;
+			Uncertain<double> uv = (Uncertain<double>) v;
+
 			Uncertain<double> x = new Exponential (2);
 			Uncertain<double> y = new Exponential (3);
 
@@ -34,4 +37,3 @@ namespace DependenceAnalysis
 
 	}
 }
-
