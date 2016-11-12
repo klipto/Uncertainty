@@ -38,7 +38,11 @@ namespace DependenceAnalysis
 				Console.WriteLine (erp.GetType().ToString());
 				if (erp.GetType ().BaseType.ToString ().Contains ("RandomPrimitive")) {
 					Visit ((RandomPrimitive<T>)erp);
-				}  
+                }
+                else if (erp.GetType().ToString().Contains("SelectMany"))
+                {
+                    Visit((SelectMany<T, T, T>)erp);
+                }
 			}
 		}
 
@@ -71,7 +75,7 @@ namespace DependenceAnalysis
 			TSource a = (TSource) this.sample;
 
 			Uncertain<TCollection> otherSampler = (selectmany.CollectionSelector.Compile())((TSource)this.sample);
-			otherSampler.Accept(this);
+		    otherSampler.Accept(this);
 			//dependencies.Add ();
 		}
 
@@ -87,7 +91,7 @@ namespace DependenceAnalysis
 		{
 			// compute Spearman's correlation among the pairs in primitives by drawing 1000 sample values and finding the correlation
 			List<Tuple<Tuple<int, int>, double>> correlation_coefficients = new List<Tuple<Tuple<int, int>, double>>();
-			int sample_size = 1000;
+			int sample_size = 10000;
 
 			List<ParametersOfERPs> primitives_parameters = new List<ParametersOfERPs> ();
 
@@ -96,15 +100,32 @@ namespace DependenceAnalysis
 					&& primitive.GetType ().BaseType.ToString ().Contains ("Double")) {
 
 					var samples = ((RandomPrimitive<double>)primitive).SampledInference (sample_size).Support ().ToList ();
-					Console.WriteLine ("count: " +samples.Count);
+                    var rank_list = new  double[samples.Count];
+
 					Microsoft.Research.Uncertain.Inference.Extensions.inferences.RemoveAt (Microsoft.Research.Uncertain.Inference.Extensions.inferences.Count-1);
-					samples.OrderBy (i=>i.Value);
+					
 					List<Tuple<double, double>> ranks = new List<Tuple<double, double>>();
-					foreach (var sample in samples) {
-						double rank = 1.0;
-						ranks.Add (Tuple.Create(sample.Value, rank));
-						rank = rank + 1.0;
-					}
+                    int i, j;
+                    for (i = 0; i < samples.Count; i++) {
+                        int current_rank = 1;
+                        for (j = 0; j < i; j++)
+                        {
+                            if (samples.ElementAt(i).Value > samples.ElementAt(j).Value)
+                            {
+                                current_rank++;
+                            }
+                            else
+                            {
+                                rank_list[j] = rank_list[j] + 1;
+                            }
+                        }
+                        rank_list[i] = current_rank;
+                    }
+
+                    for (int x = 0; x < samples.Count;x++ )
+                    {
+                        ranks.Add(Tuple.Create(samples.ElementAt(x).Value, rank_list[x]));                      
+                    }
 					primitives_parameters.Add (new ParametersOfERPs(((RandomPrimitive<double>)primitive).GetStructuralHash (), ranks));	
 				}
 			}
@@ -112,11 +133,15 @@ namespace DependenceAnalysis
 			foreach (var primitive1 in primitives_parameters) {
 				foreach (var primitive2 in primitives_parameters) {
 					double sum_of_differences_sq = 0.0;
-					for (int x = 0; x<primitive1.ranks.Count; x++) {
-						sum_of_differences_sq = sum_of_differences_sq + (Math.Pow (primitive1.ranks.ElementAt (x).Item2 - primitive2.ranks.ElementAt (x).Item2, 2));
-					}
-					double correlation = 1.0- ((6.0* sum_of_differences_sq)/(sample_size *(Math.Pow(sample_size,2.0)-1.0)));
-					correlation_coefficients.Add (Tuple.Create (Tuple.Create (primitive1.ID, primitive2.ID), correlation));
+                    if (primitive1.ranks.Count == primitive2.ranks.Count)
+                    {
+                        for (int x = 0; x < primitive1.ranks.Count; x++)
+                        {
+                            sum_of_differences_sq = sum_of_differences_sq + (Math.Pow(primitive1.ranks.ElementAt(x).Item2 - primitive2.ranks.ElementAt(x).Item2, 2));
+                        }
+                        double correlation = 1.0 - ((6.0 * sum_of_differences_sq) / (sample_size * (Math.Pow(sample_size, 2.0) - 1.0)));
+                        correlation_coefficients.Add(Tuple.Create(Tuple.Create(primitive1.ID, primitive2.ID), correlation));
+                    }
 				}
 			}
 			return correlation_coefficients;

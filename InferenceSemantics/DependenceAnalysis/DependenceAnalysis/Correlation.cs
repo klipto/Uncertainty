@@ -54,7 +54,7 @@ namespace DependenceAnalysis
 		public void AddChannelNoise(){
 		
 			// how many data to modify? maximum is the number of data we have from the sensor.
-			int number_of_data_to_modify = new Random ().Next(0, temperature.Count);
+            int number_of_data_to_modify = new Random ().Next(0, temperature.Count);
 
 			// for each of them, randomly pick an index and add the noise.
 			for (int x=0; x<number_of_data_to_modify; x++) {
@@ -62,7 +62,10 @@ namespace DependenceAnalysis
 				int index = rand.Next (0, temperature.Count);
 
 				// adding noise makes the temperature have a Gaussian distribution.
-				var g_noisy_t = new Gaussian (temperature.ElementAt(index) , 1);
+                var g_noisy_t = from n in noise
+                                from t in (Uncertain<double>)temperature.ElementAt(x)
+                                select n + t;
+
 				temperature_distribution.Add (g_noisy_t);
 			
 				// adding noise makes the humidity have a Gaussian distribution.

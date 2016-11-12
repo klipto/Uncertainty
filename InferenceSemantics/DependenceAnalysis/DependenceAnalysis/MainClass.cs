@@ -15,18 +15,17 @@ namespace DependenceAnalysis
 	{
 		public static void Main(string[] args)
 		{	
-			Test t = new Test ();
-			t.tttest ();
-		//	DependenceAnalyzer<double> analyzer = new DependenceAnalyzer<double> ();
-		//	Correlation cr = new Correlation ();
-		//	cr.UncertainProgram ();//.Accept(analyzer);
+			
+			DependenceAnalyzer<double> analyzer = new DependenceAnalyzer<double> ();
+	    	Correlation cr = new Correlation ();
+			cr.UncertainProgram ().Accept(analyzer);
 
-		//	var result = analyzer.spearmanCorrelationCalculator (analyzer.random_primitives);
+			var result = analyzer.spearmanCorrelationCalculator (analyzer.random_primitives);
 
 			//var result1 = analyzer.pearsonCorrelationCalculator (analyzer.random_primitives);
 
-			TwoExponentials t1 = new TwoExponentials ();
-			var output = t1.UncertainProgram ();
+			//TwoExponentials t1 = new TwoExponentials ();
+			//var output = t1.UncertainProgram ();
 
 	//		output.Accept(analyzer);
 //			var result1 = analyzer.correlationCalculator(analyzer.random_primitives);
