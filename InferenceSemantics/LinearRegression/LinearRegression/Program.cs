@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
+using System.IO;
 using System.Threading.Tasks;
 
 using Microsoft.Research.Uncertain;
@@ -160,6 +161,7 @@ namespace LinearRegression
 
         static void Main(string[] args)
         {
+
 			var TRAINING_FILE = "ijcnn11";                        
 			var data = ProblemHelper.ReadAndScaleProblem(TRAINING_FILE);
 			var numexamples = data.l;
@@ -181,19 +183,55 @@ namespace LinearRegression
 
 			//BayesianTrain(X, Y);
 
+			double fixed_alpha = 0.001;
+
+			var watch_lr_without_mi = System.Diagnostics.Stopwatch.StartNew();
+
+			var w2 = MaximumLikelihoodTrain (X, Y, fixed_alpha, 0.01);
+
+			watch_lr_without_mi.Stop();
+			var time_lr_without_mi = watch_lr_without_mi.ElapsedMilliseconds;
+
 			Func<double, Tuple<int, Matrix<double>>> F = (a) =>	MaximumLikelihoodTrain (X, Y, a, 0.01);
 
 			List<Weighted<double>> alphas = 
-				new List<Weighted<double>> (new Weighted<double>[] {new Weighted<double>(0.001, 0.3), new Weighted<double>(0.01, 0.6), new Weighted<double>(0.1, 0.1)});
+				new List<Weighted<double>> (new Weighted<double>[] {
+					new Weighted<double>(0.001, 0.25), 
+					new Weighted<double>(0.01, 0.15), 
+					new Weighted<double>(0.05, 0.15),
+					new Weighted<double>(0.008, 0.15),
+					new Weighted<double>(0.1, 0.05),
+					new Weighted<double>(0.005, 0.25)});
 
 			Debugger<double> doubleDebugger = new Debugger<double> (alphas);
+
+			var watch_lr_with_mi = System.Diagnostics.Stopwatch.StartNew();
+
 			var alpha = from k1 in ((FiniteEnumHyperParameterModel)
 			                        doubleDebugger.hyperParameterModel).finiteEnumeration
 				select Tuple.Create(k1, ((FiniteEnumHyperParameterModel)doubleDebugger.hyperParameterModel).finiteEnumeration.Score(k1));
+			var best_alphas = doubleDebugger.DebugAlphaLearningRate((FiniteEnumHyperParameterModel)doubleDebugger.hyperParameterModel, F, alpha);
+			var w1 = MaximumLikelihoodTrain(X, Y, best_alphas.OrderByDescending(i=>i.Item1).ElementAt(0).Item2.Value.Item1, 0.01);
 
-			double best_alpha = doubleDebugger.DebugAlphaLearningRate((FiniteEnumHyperParameterModel)doubleDebugger.hyperParameterModel, F, alpha);
+			watch_lr_with_mi.Stop();
+			var time_lr_with_mi = watch_lr_with_mi.ElapsedMilliseconds;
 
-			//var w = MaximumLikelihoodTrain(X, Y, 0.001, 0.01);
+			Console.WriteLine ("without " +  time_lr_without_mi);
+			Console.WriteLine ("with " + time_lr_with_mi);
+
+			var aa = best_alphas.OrderByDescending (i=>i.Item1).ElementAt(0).Item1;
+			var bb = best_alphas.OrderByDescending (i=>i.Item1).ElementAt(0).Item2.Value.Item1;
+
+			var cc = best_alphas.OrderByDescending (i=>i.Item1).ElementAt(0).Item2.Value.Item2;
+			var dd = best_alphas.OrderByDescending (i => i.Item1).ElementAt (0).Item3;
+
+			string file = "alpha_ratio.txt";
+			using (StreamWriter sw1 = new StreamWriter(file))
+			{
+				foreach (var ba in best_alphas) {
+					sw1.WriteLine ("ratio: " + ba.Item1 + " alpha: " + ba.Item2.Value.Item1 + " iterations:" + ba.Item3);
+				}
+			}
 
 			DateTime start1 = DateTime.Now;
 			var program1 = from a in new Flip (0.9)

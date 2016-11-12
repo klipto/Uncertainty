@@ -68,8 +68,8 @@ namespace InferenceDebugger
         public void Visit<T>(Inference<T> inference)
         {
             //SamplingInformation sampling_information = new SamplingInformation(inference.GetType());           
-            Console.Write("source type: "+inference.Source.GetType()+ "\n");
-            inference.Source.Accept(this);        
+            Console.Write("source type: "+inference.source.GetType()+ "\n");
+            inference.source.Accept(this);        
         }
     }
 }

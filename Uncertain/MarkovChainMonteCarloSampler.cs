@@ -148,6 +148,11 @@ namespace Microsoft.Research.Uncertain
         {
             throw new NotImplementedException();
         }
+
+		public void Visit<T>(UList<T> u_list)
+		{
+			throw new NotImplementedException();
+		}
     }
 
     public class MarkovChainMonteCarloSampler<T> : IUncertainVisitor, ISampler<T>
@@ -409,5 +414,10 @@ namespace Microsoft.Research.Uncertain
         {
             throw new NotImplementedException();
         }
+
+		public void Visit<T>(UList<T> u_list)
+		{
+			throw new NotImplementedException();
+		}
     }
 }

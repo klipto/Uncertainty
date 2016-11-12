@@ -13,6 +13,7 @@ namespace DependenceAnalysis
 {
 	public class Temperature_Humidity
 	{
+
 		public List<double> temperature;
 		public List<double> humidity;
 
@@ -36,7 +37,7 @@ namespace DependenceAnalysis
 
 		public void Parser(List<double> temperature, List<double> humidity) {
 		
-			StreamReader file = new StreamReader("temp_hum.txt");
+			StreamReader file = new StreamReader("temp_hum1.txt");
 			string line;
 
 			while ((line = file.ReadLine())!= null) {			

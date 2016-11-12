@@ -223,8 +223,13 @@ namespace SearchEngine
                     score_probabilities.Add(machine, probabilities_documents);
                     if (document_probabilities.Count > 2)
                     {
-                                    
-                        topk_uncertain_documents = TopkDocumentSelector(exp, probabilities_documents);
+						var doc1 = new ChosenDocument {field=document_probabilities.ElementAt(0).Key, picking_probability= document_probabilities.ElementAt(0).Value};    
+						var doc2 = new ChosenDocument {field= document_probabilities.ElementAt(1).Key, picking_probability= document_probabilities.ElementAt(0).Value};           
+						var doc3 = new ChosenDocument {field = document_probabilities.ElementAt(2).Key, picking_probability= document_probabilities.ElementAt(0).Value};      
+						topk_uncertain_documents.Add (doc1);
+						topk_uncertain_documents.Add (doc2);
+						topk_uncertain_documents.Add (doc3);
+						//topk_uncertain_documents = TopkDocumentSelector(exp, probabilities_documents);
                     }         
                     machine_result_map.Add(machine, topk_uncertain_documents);
                     machine++;
@@ -247,14 +252,15 @@ namespace SearchEngine
 			var hyper = from k in ((TruncatedHyperParameterModel)doubleDebugger.hyperParameterModel).truncatedGeometric
 				select Tuple.Create(k, ((TruncatedHyperParameterModel)doubleDebugger.hyperParameterModel).truncatedGeometric.Score(k));
             
-			var topk = doubleDebugger.DebugTopk(((TruncatedHyperParameterModel)doubleDebugger.hyperParameterModel), F, 0, 1 / (double)exp.Score(0), hyper, exp);            
-            
+			var topk = doubleDebugger.DebugTopk(((TruncatedHyperParameterModel)doubleDebugger.hyperParameterModel), F, 0, 1 / (double)exp.Score(0), hyper, exp);
+			            
 			if (topk.Item1 > 0) 
             {
                 for (int x = 0; x < topk.Item1; x++)
                 {
                     uncertain_documents.Add(new ChosenDocument { field = document_probabilities.ElementAt(x).Key, picking_probability = document_probabilities.ElementAt(x).Value });
                 }
+
                 foreach (var val in topk.Item2)
                 {
                     foreach (var f in document_probabilities)
@@ -266,6 +272,7 @@ namespace SearchEngine
                     }
                 }
             }
+
             return uncertain_documents;
         }
 
@@ -281,23 +288,25 @@ namespace SearchEngine
             
 			data_partitions_for_distributed_search = CreateDataPartitions(SampleDataRepository.GetAll(), number_of_machines);
 
-			string[] queries = {//"algorithm"//, 
-				//"artificial"
-				//,
-				//"machine"//, 
-				//"inference"//, 
+			string[] queries = {"algorithm", 
+				"artificial",
+				"machine", 
+				"inference", 
 				"statistical"
 			};
             
+			//var watch_se_with_mi = System.Diagnostics.Stopwatch.StartNew();
+			var watch_se_without_mi = System.Diagnostics.Stopwatch.StartNew();
 			foreach (var query in queries)
             {
                 try
                {
-                    var score_summaries = new Dictionary<int, Dictionary<Field, double>>();
+					var score_summaries = new Dictionary<int, Dictionary<Field, double>>();
                     var score_probabilities = new Dictionary<int, Dictionary<Field, double>>();                    
                     var distributed_search = distributedSearch(query, score_summaries, score_probabilities);
                     
-                   var central_search = finalSearch(score_summaries, score_probabilities, distributed_search);
+                    var central_search = finalSearch(score_summaries, score_probabilities, distributed_search);
+
                    // result_count.Add(Tuple.Create(query, central_search.Item1.Count, central_search.Item2, central_search.Item3, central_search.Item4, central_search.Item5));
                 }
                 catch (Exception e)
@@ -305,6 +314,11 @@ namespace SearchEngine
                     Console.Write("Search failed: " + e.GetType());
                 }
             }
+			watch_se_without_mi.Stop();
+			var time_without_mi = watch_se_without_mi.ElapsedMilliseconds;
+			//watch_se_with_mi.Stop();
+			//var time_with_mi = watch_se_with_mi.ElapsedMilliseconds;
+			Console.WriteLine("with: " + time_without_mi);
             Console.ReadKey();
         }        
     }

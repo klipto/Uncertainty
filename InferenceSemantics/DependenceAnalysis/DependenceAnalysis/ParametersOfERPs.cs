@@ -17,8 +17,12 @@ namespace DependenceAnalysis
 		protected internal List<Weighted<double>> d_samples;
 		protected internal List<Weighted<int>> i_samples;
 		protected internal List<Weighted<object>> samples;
+
 		protected internal double sum;
 		protected internal double stddev;
+
+		// for Spearman's correlation.
+		protected internal List<Tuple<double, double>> ranks;
 
 		public ParametersOfERPs (int id, List<Weighted<double>> samples, double sum, double stddev)
 		{
@@ -30,6 +34,12 @@ namespace DependenceAnalysis
 			foreach (var d in this.d_samples) {
 				this.samples.Add(new Weighted<object> ((object)d.Value, d.Probability));			
 			}
+		}
+
+		public ParametersOfERPs (int id, List<Tuple<double, double>> ranks)
+		{
+			this.ID = id;
+			this.ranks = ranks;
 		}
 
 		public ParametersOfERPs (int id, List<Weighted<int>> samples, double sum, double stddev)

@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using Microsoft.Research.Uncertain;
@@ -12,7 +12,7 @@ namespace InferenceDebuggerTests
     public class ExponentialTest
     {
         public static Func<int, Uncertain<double>> F = (k1) =>
-               from a in new Exponential(0.2).SampledInference(k1)
+               from a in new Exponential(2.0).SampledInference(k1)
                select a;
         public static double getMean()
         {
@@ -22,10 +22,12 @@ namespace InferenceDebuggerTests
         [TestMethod]
         public void TestExponential()
         {
-            Debugger<double> doubleDebugger = new Debugger<double>(0.01, 100, 1000);
-            var hyper = from k1 in doubleDebugger.hyperParameterModel.truncatedGeometric
+            Debugger<double> doubleDebugger = new Debugger<double>(0.01, 100, 8321);
+            
+			var hyper = from k1 in doubleDebugger.hyperParameterModel.truncatedGeometric
                         select Tuple.Create(k1, doubleDebugger.hyperParameterModel.truncatedGeometric.Score(k1));
             var k = doubleDebugger.DebugSampleSize(doubleDebugger.hyperParameterModel, F, getMean(), hyper);
+
             Console.WriteLine(k.Item1);
             Assert.AreNotEqual(600, k.Item1);
         }

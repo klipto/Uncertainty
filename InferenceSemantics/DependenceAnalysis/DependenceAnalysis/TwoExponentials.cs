@@ -15,7 +15,6 @@ namespace DependenceAnalysis
 	{
 		public TwoExponentials ()
 		{
-
 		}
 
 		public Uncertain<double> UncertainProgram() {
@@ -24,7 +23,7 @@ namespace DependenceAnalysis
 
 			Uncertain<double> x = new Exponential (2);
 			Uncertain<double> y = new Exponential (3);
-
+		
 			var p = from a in x
 					from b in y
 					select a + b;

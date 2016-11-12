@@ -65,7 +65,7 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
 
         Func<double, Uncertain<Uncertain<R>>, IEnumerable<Tuple<int, double, List<Weighted<R>>, double>>> SameSampleSizeBestProgramSamplerForSize = (population_mean, p) =>
         {
-            var samples = p.SampledInference(10000).Support().ToList();
+            var samples = p.SampledInference(1000).Support().ToList();
             var t_variates = from sample in samples
                              where sample.Value.Inference().Support().ToList().Count > 0
                              let t = TVariateGenerator(sample.Value.Inference().Support().ToList().Count, population_mean, sample.Value)
@@ -224,20 +224,19 @@ namespace Microsoft.Research.Uncertain.InferenceDebugger
             }
         };
 
-		public double DebugAlphaLearningRate(FiniteEnumHyperParameterModel model, Func<double, Tuple<int, Matrix<double>>> program, Uncertain<Tuple<double, double>>hyper_params) 
+		public List<Tuple<double, Weighted<Tuple<double, double>>, int>> DebugAlphaLearningRate
+			(FiniteEnumHyperParameterModel model, Func<double, Tuple<int, Matrix<double>>> program, Uncertain<Tuple<double, double>>hyper_params) 
 		{
-			List<Tuple<double, Weighted<Tuple<double, double>>>> ratios = new List<Tuple<double, Weighted<Tuple<double, double>>>> ();
+			List<Tuple<double, Weighted<Tuple<double, double>>, int>> ratios = new List<Tuple<double, Weighted<Tuple<double, double>>, int>> ();
 
 			foreach(var k1 in hyper_params.Support().ToList()) {							
 				var ratio = k1.Value.Item2 / program (k1.Value.Item1).Item1;
-				ratios.Add (Tuple.Create(ratio, k1));
+				ratios.Add (Tuple.Create(ratio, k1, program(k1.Value.Item1).Item1));
 			}
-
 			ratios.OrderByDescending (i=>i.Item1);
-			return ratios.ElementAt (0).Item2.Value.Item1;
+			//return ratios.ElementAt (0).Item2.Value.Item1;
+			return ratios;
 		}
-
-
                
         public Tuple<int, List<Weighted<R>>> DebugSampleSize<R>(TruncatedHyperParameterModel model, Func<int, Uncertain<R>> program, double population_mean, Uncertain<Tuple<int, double>> hyper_params)
         {

@@ -16,8 +16,14 @@ namespace ComplexInferenceBenchmark
 		private Gaussian gaussian1;
 		private Gaussian gaussian2;
 
+		public Simple() {
+		
+		}
+
 		public Simple (Gaussian g1, Gaussian g2)
 		{
+
+
 			gaussian1 = g1;
 			gaussian2 = g2;
 		}

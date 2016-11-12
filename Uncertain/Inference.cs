@@ -10,6 +10,7 @@ namespace Microsoft.Research.Uncertain
 
         public Uncertain<T> source { get; private set; }
 		public int sample_size { get; private set;}
+	
 		public List<int> inference_dependencies{ get; private set;}
 	
         public readonly IEqualityComparer<T> comparer;
