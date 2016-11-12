@@ -66,6 +66,7 @@ namespace DependenceAnalysis
 //
 //			WrongInferenceLocation w = new WrongInferenceLocation();
 //			w.UncertainProgram ();
+
 //			bool result2 = analyzer.earlyInferenceDetector ();
 		}
 	}
