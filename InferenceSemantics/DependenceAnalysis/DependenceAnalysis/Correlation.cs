@@ -70,7 +70,7 @@ namespace DependenceAnalysis
                                 select n + t;
           
 				temperature_distribution.Add (g_noisy_t);
-                data.Add(g_noisy_t);
+                //data.Add(g_noisy_t);
 			
 				// adding noise makes the humidity have a Gaussian distribution.
 				var g_noisy_h  = from n in noise
@@ -105,6 +105,41 @@ namespace DependenceAnalysis
             AddChannelNoise();            
             return pairs;
         }
+
+        public Uncertain<double> UncertainProgram2() 
+        {
+            Parser(temperature, humidity);
+            return WrongInference();
+        }
+
+        public Uncertain<double> WrongInference() 
+        {
+            // how many data to modify? maximum is the number of data we have from the sensor.
+           // int number_of_data_to_modify = new Random().Next(0, temperature.Count);
+
+            Random rand = new Random();
+			// for each of them, randomly pick an index and add the noise.
+           // for (int x = 0; x < number_of_data_to_modify; x++)
+            //{
+
+                int index = rand.Next(0, temperature.Count);
+             
+                var g_noisy_t = from n in noise.SampledInference(1000)
+                                from t in (Uncertain<double>)temperature.ElementAt(index)
+                                select n + t;
+
+                var g_noisy_h = from n in noise.SampledInference(1000)
+                                from h in (Uncertain<double>)humidity.ElementAt(index)
+                                select n + h;
+
+                var use_data = from gt in g_noisy_t
+                               from gh in g_noisy_h
+                               select gt + gh;
+
+                return use_data;
+
+        }
+
 
 //		public Uncertain<Tuple<double,double>> UseNoisyData(Uncertain<double> t, Uncertain<double> h) {
 //			var ret = from tt in t
