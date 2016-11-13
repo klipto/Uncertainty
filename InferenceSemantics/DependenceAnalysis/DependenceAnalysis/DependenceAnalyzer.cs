@@ -18,32 +18,70 @@ namespace DependenceAnalysis
 
 		public List<object> random_primitives{ get; private set;}
         public List<object> objs { get; private set; }
+        public List<List<object>> tuple_objs { get; private set; }
 		public List<int> dependencies;
         public List<Tuple<Tuple<int, int>, double>> correlations_in_list;
+        public List<List<Tuple<Tuple<int, int>, double>>> correlations_paired;
+
 
 		public DependenceAnalyzer()
 		{
 			this.random_primitives = new List<object> ();
 			this.dependencies = new List<int>();
+            
             this.objs = new List<object>();
+            this.tuple_objs = new List<List<object>>();
+
             this.correlations_in_list = new List<Tuple<Tuple<int, int>, double>>();
+            this.correlations_paired = new List<List<Tuple<Tuple<int, int>, double>>>();
 		}
 
 		public void Visit<T>(RandomPrimitive<T> erp)
 		{
 			this.sample = erp.Sample(this.generation++);
 			random_primitives.Add(erp);
-
 		}
 
         // find correlation between all random variables in a ulist.
 		public void Visit<T>(UList<T> ulist)
 		{
-
             foreach (var u in ulist) {
-                objs.Add((Object)u);
+                if (!u.GetType().ToString().Contains("Tuple"))
+                {
+                    objs.Add((Object)u);
+                }
+                else if (u.GetType().BaseType.ToString().Contains("Tuple"))
+                {
+                    var vs = u.SampledInference(1000);
+                    List<Weighted<Tuple<double, double>>> samples = (dynamic)vs.Support().ToList();
+                    List<Tuple<double, double>> values =samples.Select(i=>i.Value).ToList();
+                    List<double> xs = new List<double>();
+                    List<double> ys = new List<double>();
+                    foreach (var v in values) {
+                        xs.Add(((Tuple<double, double>)v).Item1);
+                        ys.Add(((Tuple<double, double>)v).Item2);
+                    }
+                    List<ParametersOfERPs> primitives_parameters = new List<ParametersOfERPs>();
+                    List<Tuple<double, double>> x_ranks = new List<Tuple<double, double>>();
+                    List<Tuple<double, double>> y_ranks = new List<Tuple<double, double>>();
+                    
+                    for (int x = 0; x < xs.Count; x++)
+                    {
+                        x_ranks.Add(Tuple.Create(xs.ElementAt(x), Ranker(xs)[x]));
+                    }
+
+                    for (int x = 0; x < ys.Count; x++)
+                    {
+                        y_ranks.Add(Tuple.Create(ys.ElementAt(x), Ranker(ys)[x]));
+                    }
+                    var xx = x_ranks.OrderBy(i=>i.Item2);
+                    primitives_parameters.Add(new ParametersOfERPs(1, x_ranks));
+                    primitives_parameters.Add(new ParametersOfERPs(2, y_ranks));
+                    correlations_paired.Add(calculateCorrelation(primitives_parameters, 1000));
+                }
             }
             correlations_in_list= spearmanCorrelationCalculator(objs);
+
 			/*foreach (var erp in ulist) {
 				Console.WriteLine (erp.GetType().ToString());
 				if (erp.GetType ().BaseType.ToString ().Contains ("RandomPrimitive")) {
@@ -87,6 +125,28 @@ namespace DependenceAnalysis
 			inference.inference_dependencies.AddRange(this.dependencies);
 		}
 
+        public double[] Ranker(List<double> samples) {
+            var rank_list = new double[samples.Count];
+            int i, j;
+            for (i = 0; i < samples.Count; i++)
+            {
+                int current_rank = 1;
+                for (j = 0; j < i; j++)
+                {
+                    if (samples.ElementAt(i) > samples.ElementAt(j))
+                    {
+                        current_rank++;
+                    }
+                    else
+                    {
+                        rank_list[j] = rank_list[j] + 1;
+                    }
+                }
+                rank_list[i] = current_rank;
+            }
+            return rank_list;
+        }
+
 		public List<Tuple<Tuple<int, int>, double>> spearmanCorrelationCalculator(List<object> primitives)
 		{
 			// compute Spearman's correlation among the pairs in primitives by drawing 1000 sample values and finding the correlation
@@ -100,33 +160,17 @@ namespace DependenceAnalysis
                     && primitive.GetType().BaseType.ToString().Contains("Double"))
                 {
 
-                    var samples = ((RandomPrimitive<double>)primitive).SampledInference(sample_size).Support().ToList();
-                    var rank_list = new double[samples.Count];
+                    var samples = ((RandomPrimitive<double>)primitive).SampledInference(sample_size).Support().Select(i=>i.Value).ToList();                 
 
                     Microsoft.Research.Uncertain.Inference.Extensions.inferences.RemoveAt(Microsoft.Research.Uncertain.Inference.Extensions.inferences.Count - 1);
 
                     List<Tuple<double, double>> ranks = new List<Tuple<double, double>>();
-                    int i, j;
-                    for (i = 0; i < samples.Count; i++)
-                    {
-                        int current_rank = 1;
-                        for (j = 0; j < i; j++)
-                        {
-                            if (samples.ElementAt(i).Value > samples.ElementAt(j).Value)
-                            {
-                                current_rank++;
-                            }
-                            else
-                            {
-                                rank_list[j] = rank_list[j] + 1;
-                            }
-                        }
-                        rank_list[i] = current_rank;
-                    }
+
+                    var rank_list = Ranker(samples);
 
                     for (int x = 0; x < samples.Count; x++)
                     {
-                        ranks.Add(Tuple.Create(samples.ElementAt(x).Value, rank_list[x]));
+                        ranks.Add(Tuple.Create(samples.ElementAt(x), rank_list[x]));
                     }
                     primitives_parameters.Add(new ParametersOfERPs(((RandomPrimitive<double>)primitive).GetStructuralHash(), ranks));
                 }
@@ -134,43 +178,35 @@ namespace DependenceAnalysis
                     && primitive.GetType().BaseType.ToString().Contains("Double"))
                 {
 
-                    var samples = ((SelectMany<double, double, double>)primitive).SampledInference(sample_size).Support().ToList();
-                    var rank_list = new double[samples.Count];
+                    var samples = ((SelectMany<double, double, double>)primitive).SampledInference(sample_size).Support().Select(i=>i.Value).ToList();
+                    
 
                     Microsoft.Research.Uncertain.Inference.Extensions.inferences.RemoveAt(Microsoft.Research.Uncertain.Inference.Extensions.inferences.Count - 1);
 
                     List<Tuple<double, double>> ranks = new List<Tuple<double, double>>();
-                    int i, j;
-                    for (i = 0; i < samples.Count; i++)
-                    {
-                        int current_rank = 1;
-                        for (j = 0; j < i; j++)
-                        {
-                            if (samples.ElementAt(i).Value > samples.ElementAt(j).Value)
-                            {
-                                current_rank++;
-                            }
-                            else
-                            {
-                                rank_list[j] = rank_list[j] + 1;
-                            }
-                        }
-                        rank_list[i] = current_rank;
-                    }
+                    var rank_list = Ranker(samples);
 
                     for (int x = 0; x < samples.Count; x++)
                     {
-                        ranks.Add(Tuple.Create(samples.ElementAt(x).Value, rank_list[x]));
+                        ranks.Add(Tuple.Create(samples.ElementAt(x), rank_list[x]));
                     }
                     primitives_parameters.Add(new ParametersOfERPs(((SelectMany<double, double, double>)primitive).GetHashCode(), ranks));
                 }
 			}
 
-			foreach (var primitive1 in primitives_parameters) {
-				foreach (var primitive2 in primitives_parameters) {
-					double sum_of_differences_sq = 0.0;
-                     if (primitive1.ranks.Count == primitive2.ranks.Count)
-                      {
+            return calculateCorrelation(primitives_parameters, sample_size);
+		}
+
+        public List<Tuple<Tuple<int, int>, double>> calculateCorrelation(List<ParametersOfERPs> primitives_parameters, int sample_size) 
+        {
+            List<Tuple<Tuple<int, int>, double>> correlation_coefficients = new List<Tuple<Tuple<int,int>,double>>();
+            foreach (var primitive1 in primitives_parameters)
+            {
+                foreach (var primitive2 in primitives_parameters)
+                {
+                    double sum_of_differences_sq = 0.0;
+                    if (primitive1.ranks.Count == primitive2.ranks.Count)
+                    {
                         for (int x = 0; x < primitive1.ranks.Count; x++)
                         {
                             sum_of_differences_sq = sum_of_differences_sq + (Math.Pow(primitive1.ranks.ElementAt(x).Item2 - primitive2.ranks.ElementAt(x).Item2, 2));
@@ -178,10 +214,10 @@ namespace DependenceAnalysis
                         double correlation = 1.0 - ((6.0 * sum_of_differences_sq) / (sample_size * (Math.Pow(sample_size, 2.0) - 1.0)));
                         correlation_coefficients.Add(Tuple.Create(Tuple.Create(primitive1.ID, primitive2.ID), correlation));
                     }
-				}
-			}
-			return correlation_coefficients;
-		}
+                }
+            }
+            return correlation_coefficients;
+        }
 
 		public List<Tuple<Tuple<int, int>, double>> pearsonCorrelationCalculator(List<object> primitives)  
 		{

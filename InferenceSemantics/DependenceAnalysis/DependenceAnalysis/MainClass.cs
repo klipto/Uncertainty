@@ -18,10 +18,15 @@ namespace DependenceAnalysis
             DependenceAnalyzer<double> analyzer = new DependenceAnalyzer<double> ();
 
             Correlation cr = new Correlation();
-            UList<double> vals = cr.UncertainProgram();
-            vals.Accept(analyzer);
+            // UList<double> vals = cr.UncertainProgram();
+            // vals.Accept(analyzer);
 
-            var result = analyzer.correlations_in_list;
+            var vals = cr.UncertainProgram1();
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            vals.Accept(analyzer);
+            timer.Stop();
+            var time = timer.ElapsedMilliseconds;
+            // var result = analyzer.correlations_in_list;
 
             /*var g = new Gaussian(0,1);
             double d1 = 15.5;

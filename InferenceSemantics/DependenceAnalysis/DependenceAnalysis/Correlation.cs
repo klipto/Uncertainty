@@ -17,7 +17,7 @@ namespace DependenceAnalysis
 		public List<double> temperature;
 		public List<double> humidity;
 
-        public UList<Uncertain<Tuple<double, double>>> pairs;
+        public UList<Tuple<double, double>> pairs;
 
 		public UList<double> temperature_distribution;
 		public UList<double> humidity_distribution;
@@ -34,7 +34,7 @@ namespace DependenceAnalysis
 			humidity_distribution = new UList<double> ();
             data = new UList<double>();
 
-			pairs = new UList<Uncertain<Tuple<double,double>>> ();
+			pairs = new UList<Tuple<double,double>> ();
 
 			noise = new Gaussian (5, 1);
 		}
@@ -99,10 +99,10 @@ namespace DependenceAnalysis
 			return data;
 		}
 
-        public UList<Uncertain<Tuple<double,double>>> UncertainProgram1()
+        public UList<Tuple<double,double>> UncertainProgram1()
         {
             Parser(temperature, humidity);
-            AddChannelNoise();
+            AddChannelNoise();            
             return pairs;
         }
 
