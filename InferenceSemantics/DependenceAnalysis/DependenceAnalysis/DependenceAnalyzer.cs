@@ -197,6 +197,17 @@ namespace DependenceAnalysis
             return calculateCorrelation(primitives_parameters, sample_size);
 		}
 
+        public List<Tuple<int, int>> checkCorrelation(List<Tuple<Tuple<int, int>, double>> correlation_matrix) 
+        {
+            List<Tuple<int, int>> significant_correlations = new List<Tuple<int, int>>();
+            foreach (var element in correlation_matrix) {
+                if (element.Item2 >= 0.7 || element.Item2 <= -0.7) {
+                    significant_correlations.Add(element.Item1);
+                }
+            }
+            return significant_correlations;
+        }
+
         public List<Tuple<Tuple<int, int>, double>> calculateCorrelation(List<ParametersOfERPs> primitives_parameters, int sample_size) 
         {
             List<Tuple<Tuple<int, int>, double>> correlation_coefficients = new List<Tuple<Tuple<int,int>,double>>();
