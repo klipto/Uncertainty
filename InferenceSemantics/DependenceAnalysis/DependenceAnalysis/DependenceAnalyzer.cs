@@ -22,6 +22,8 @@ namespace DependenceAnalysis
 		public List<int> dependencies;
         public List<Tuple<Tuple<int, int>, double>> correlations_in_list;
         public List<List<Tuple<Tuple<int, int>, double>>> correlations_paired;
+        public List<Tuple<int, int>> cc;
+        public List<List<Tuple<int, int>>> cc_paired;
 
 
 		public DependenceAnalyzer()
@@ -34,6 +36,8 @@ namespace DependenceAnalysis
 
             this.correlations_in_list = new List<Tuple<Tuple<int, int>, double>>();
             this.correlations_paired = new List<List<Tuple<Tuple<int, int>, double>>>();
+            cc = new List<Tuple<int, int>>();
+            cc_paired = new List<List<Tuple<int, int>>>();
 		}
 
 		public void Visit<T>(RandomPrimitive<T> erp)
@@ -52,7 +56,7 @@ namespace DependenceAnalysis
                 }
                 else if (u.GetType().BaseType.ToString().Contains("Tuple"))
                 {
-                    var vs = u.SampledInference(1000);
+                    var vs = u.SampledInference(100);
                     List<Weighted<Tuple<double, double>>> samples = (dynamic)vs.Support().ToList();
                     List<Tuple<double, double>> values =samples.Select(i=>i.Value).ToList();
                     List<double> xs = new List<double>();
@@ -77,11 +81,15 @@ namespace DependenceAnalysis
                     var xx = x_ranks.OrderBy(i=>i.Item2);
                     primitives_parameters.Add(new ParametersOfERPs(1, x_ranks));
                     primitives_parameters.Add(new ParametersOfERPs(2, y_ranks));
-                    correlations_paired.Add(calculateCorrelation(primitives_parameters, 1000));
+                    correlations_paired.Add(calculateCorrelation(primitives_parameters, 100));
+                    foreach (var l in correlations_paired)
+                    {
+                        cc_paired.Add(checkCorrelation(l));
+                    }
                 }
             }
             correlations_in_list= spearmanCorrelationCalculator(objs);
-
+            var cc = checkCorrelation(correlations_in_list);
 			/*foreach (var erp in ulist) {
 				Console.WriteLine (erp.GetType().ToString());
 				if (erp.GetType ().BaseType.ToString ().Contains ("RandomPrimitive")) {
@@ -151,7 +159,7 @@ namespace DependenceAnalysis
 		{
 			// compute Spearman's correlation among the pairs in primitives by drawing 1000 sample values and finding the correlation
 			List<Tuple<Tuple<int, int>, double>> correlation_coefficients = new List<Tuple<Tuple<int, int>, double>>();
-			int sample_size = 1000;
+			int sample_size = 100;
 
 			List<ParametersOfERPs> primitives_parameters = new List<ParametersOfERPs> ();
 

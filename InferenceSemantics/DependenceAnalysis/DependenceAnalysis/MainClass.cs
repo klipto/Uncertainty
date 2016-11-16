@@ -19,13 +19,14 @@ namespace DependenceAnalysis
 
             Correlation cr = new Correlation();
 
-             //UList<double> vals = cr.UncertainProgram();             
-            var vals = cr.UncertainProgram2();
+            UList<double> vals = cr.UncertainProgram();             
+            //var vals = cr.UncertainProgram2();
             var timer = System.Diagnostics.Stopwatch.StartNew();
-            bool b = analyzer.earlyInferenceDetector();
-            //vals.Accept(analyzer);
+            //bool b = analyzer.earlyInferenceDetector();
+            vals.Accept(analyzer);
             timer.Stop();
             var time = timer.ElapsedMilliseconds;
+          int x = 10;
             // var result = analyzer.correlations_in_list;
 
             /*var g = new Gaussian(0,1);

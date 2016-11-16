@@ -70,14 +70,14 @@ namespace DependenceAnalysis
                                 select n + t;
           
 				temperature_distribution.Add (g_noisy_t);
-                //data.Add(g_noisy_t);
+              //data.Add(g_noisy_t);
 			
 				// adding noise makes the humidity have a Gaussian distribution.
 				var g_noisy_h  = from n in noise
                                  from h in (Uncertain<double>)humidity.ElementAt(x)
                                  select n + h;
                 humidity_distribution.Add(g_noisy_h);
-                data.Add(g_noisy_h);
+               data.Add(g_noisy_h);
 
                 var g_noisy_h_t = from n in noise
                                   from t in (Uncertain<double>)temperature.ElementAt(x)
